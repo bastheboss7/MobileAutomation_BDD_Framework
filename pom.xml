@@ -20,9 +20,15 @@
 		<maven-resource-plugin-version>3.0.2</maven-resource-plugin-version>
 		<maven-surefire-plugin-version>3.0.0-M4</maven-surefire-plugin-version>
 		<maven-cucumber-report-version>5.4.0</maven-cucumber-report-version>
+		<appium.version>7.2.0</appium.version>
 	</properties>
 
 	<dependencies>
+		<dependency>
+			<groupId>io.appium</groupId>
+			<artifactId>java-client</artifactId>
+			<version>${appium.version}</version>
+		</dependency>
 		<dependency>
 			<groupId>io.qameta.allure</groupId>
 			<artifactId>allure-cucumber5-jvm</artifactId>

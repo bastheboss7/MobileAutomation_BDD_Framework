@@ -1,5 +1,6 @@
 package pages;
 
+import io.cucumber.java.en.Given;
 import io.cucumber.java.en.When;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.FindBy;
@@ -9,8 +10,8 @@ import wrappers.LeafTapsWrappers;
 
 public class MyHomePage extends LeafTapsWrappers {
 
-	public MyHomePage() {
-		PageFactory.initElements(getDriver(), this);
+	/*public MyHomePage() {
+		PageFactory.initElements(driver, this);
 	}
 
 	@FindBy(css = "span.date-range")
@@ -96,4 +97,9 @@ public class MyHomePage extends LeafTapsWrappers {
 
 
 	}
+
+    @Given("I open Scan&Go")
+    public void iOpenScanGo() {
+
+    }*/
 }

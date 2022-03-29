@@ -8,8 +8,8 @@ import wrappers.LeafTapsWrappers;
 public class Hooks extends LeafTapsWrappers{
 
 	@Before
-	public void launchBrowser(Scenario sc) {
-		invokeApp(sBrowser);
+	public void launchApplication(Scenario sc) {
+		invokeApp();
 		startTestCase(sc.getName(), sc.getId());
 	}
 	
@@ -18,6 +18,6 @@ public class Hooks extends LeafTapsWrappers{
 		if (scenario.isFailed()) {
 			scenario.attach(captureScreen(),"image/png",scenario.getName());
 		}
-		quitBrowser();
+		quitApplication();
 	}
 }

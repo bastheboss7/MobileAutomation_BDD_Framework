@@ -20,9 +20,9 @@ public class LoginPage extends LeafTapsWrappers {
 	@When("I login with email and password")
 	public void iLoginWithEmailAndPassword() {
 		reportStep("Login to application", "INFO");
-		clickByAccessibility(prop.getProperty("LoginPage.SignIn.accessibility"));
-		enterByAccessibity(prop.getProperty("LoginPage.Email.accessibility"), prop.getProperty("LoginPage.UserName.Data") );
-		enterByAccessibity(prop.getProperty("LoginPage.Password.accessibility"), prop.getProperty("LoginPage.Password.Data") );
-		clickByAccessibility(prop.getProperty("LoginPage.Submit.accessibility"));
+		clickByAccessibility(prop.getProperty("LoginPage.SignIn.Accessibility"));
+		enterByAccessibity(prop.getProperty("LoginPage.Email.Accessibility"), prop.getProperty("LoginPage.UserName.Data") );
+		enterByAccessibity(prop.getProperty("LoginPage.Password.Accessibility"), prop.getProperty("LoginPage.Password.Data") );
+		clickByAccessibility(prop.getProperty("LoginPage.Submit.Accessibility"));
 	}
 }

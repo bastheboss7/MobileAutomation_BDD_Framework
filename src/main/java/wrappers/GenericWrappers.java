@@ -32,15 +32,10 @@ public class GenericWrappers extends Reporter{
     public String appActivity;
     public String deviceName;
     public String udid;
-    public String path = "C:\\Users\\dell\\AppData\\Local\\Programs\\Appium\\resources\\app\\node_modules\\appium\\node_modules\\appium-chromedriver\\chromedriver\\win\\chromedriver.exe";
+    public String installApp;
+//    public String path = "C:\\Users\\dell\\AppData\\Local\\Programs\\Appium\\resources\\app\\node_modules\\appium\\node_modules\\appium-chromedriver\\chromedriver\\win\\chromedriver.exe";
     public WebDriverWait wait;
-//    public void setDriver(GenericWrappers wrappers) {
-//        driverThreadLocal.set(wrappers);
-//    }
-//
-//    public RemoteWebDriver driver {
-//        return driverThreadLocal.get().driver;
-//    }
+    public String apkPath;
 
     public GenericWrappers() {
         Properties prop = new Properties();
@@ -52,6 +47,8 @@ public class GenericWrappers extends Reporter{
             appPackage = prop.getProperty("appPackage");
             deviceName = prop.getProperty("deviceName");
             udid = prop.getProperty("udid");
+            apkPath = prop.getProperty("apkPath");
+            installApp = prop.getProperty("installApp");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -87,13 +84,16 @@ public class GenericWrappers extends Reporter{
             dc.setCapability("appActivity", appActivity);
             dc.setCapability("deviceName", deviceName);
             dc.setCapability("automationName", "UiAutomator2");
-            dc.setCapability("noReset", true);
+            dc.setCapability("noReset", false);
             dc.setCapability("udid", udid);
             dc.setCapability("systemPort", systemPort);
-            dc.setCapability("chromedriverExecutable", path);
+//            dc.setCapability("chromedriverExecutable", path);
             dc.setCapability("newCommandTimeout", 6000);
             driver = new AndroidDriver<MobileElement>(new URL(sHubUrl), dc);
             driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
+            if (installApp.equalsIgnoreCase("true")) {
+                driver.installApp(apkPath);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -152,6 +152,19 @@ public class GenericWrappers extends Reporter{
         }
     }
 
+    public void enterByClass(String className, String data) {
+        try {
+            driver.findElementByClassName(className).sendKeys(data);
+            reportStep("The data: " + data + " entered successfully using className :" + className, "PASS");
+
+        } catch (NoSuchElementException e) {
+            reportStep("The data: " + data + " could not be entered in the className :" + className, "FAIL");
+        } catch (Exception e) {
+            e.printStackTrace();
+            reportStep("Unknown exception occured while entering " + data + " in the className :" + className, "FAIL");
+        }
+    }
+
     public void clickByEle(WebElement ele) {
         try {
             ele.click();
@@ -176,6 +189,33 @@ public class GenericWrappers extends Reporter{
         } catch (Exception e) {
             e.printStackTrace();
             reportStep("Unknown exception occured while clicking element with accessibility" + accessibility + "", "FAIL");
+        }
+    }
+
+    public void clickById(String id) {
+        try {
+            driver.findElementById(id).click();
+            reportStep("The element with id: " + id + " clicked successfully", "PASS");
+
+        } catch (NoSuchElementException e) {
+            reportStep("The element with id: " + id + " could not be clicked", "FAIL");
+        } catch (Exception e) {
+            e.printStackTrace();
+            reportStep("Unknown exception occured while clicking element with id" + id + "", "FAIL");
+        }
+
+    }
+
+    public void clickByClass(String className) {
+        try {
+            driver.findElementByClassName(className).click();
+            reportStep("The element with className: " + className + " clicked successfully", "PASS");
+
+        } catch (NoSuchElementException e) {
+            reportStep("The element with className: " + className + " could not be clicked", "FAIL");
+        } catch (Exception e) {
+            e.printStackTrace();
+            reportStep("Unknown exception occured while clicking element with className" + className + "", "FAIL");
         }
 
     }

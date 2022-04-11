@@ -1,8 +1,8 @@
 package wrappers;
 
-import io.appium.java_client.AppiumDriver;
-import io.appium.java_client.MobileElement;
+import io.appium.java_client.*;
 import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.touch.WaitOptions;
 import org.apache.commons.io.FileUtils;
 import org.openqa.selenium.*;
 import org.openqa.selenium.interactions.Actions;
@@ -16,14 +16,17 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.time.Duration;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-public class GenericWrappers extends Reporter{
+import static io.appium.java_client.touch.offset.PointOption.point;
+
+public class GenericWrappers extends Reporter {
 
 
-//    protected static final ThreadLocal<GenericWrappers> driverThreadLocal = new ThreadLocal<>();
+    //    protected static final ThreadLocal<GenericWrappers> driverThreadLocal = new ThreadLocal<>();
     public static AppiumDriver<MobileElement> driver;
     public static Properties prop;
     public String sHubUrl;
@@ -33,7 +36,7 @@ public class GenericWrappers extends Reporter{
     public String deviceName;
     public String udid;
     public String installApp;
-//    public String path = "C:\\Users\\dell\\AppData\\Local\\Programs\\Appium\\resources\\app\\node_modules\\appium\\node_modules\\appium-chromedriver\\chromedriver\\win\\chromedriver.exe";
+    //    public String path = "C:\\Users\\dell\\AppData\\Local\\Programs\\Appium\\resources\\app\\node_modules\\appium\\node_modules\\appium-chromedriver\\chromedriver\\win\\chromedriver.exe";
     public WebDriverWait wait;
     public String apkPath;
 
@@ -202,6 +205,150 @@ public class GenericWrappers extends Reporter{
         } catch (Exception e) {
             e.printStackTrace();
             reportStep("Unknown exception occured while clicking element with id" + id + "", "FAIL");
+        }
+
+    }
+
+    public void scrollFromDownToUpinApp(String accessibility) {
+        for (int i=0;i<=10;i++) {
+            try {
+                driver.findElementByAccessibilityId(accessibility).click();
+                reportStep("The element with accessibility: " + accessibility + " clicked successfully", "PASS");
+                break;
+            } catch (NoSuchElementException e) {
+                Dimension size = driver.manage().window().getSize();
+                int x1 = (int) (size.getWidth() * 0.5);
+                int y1 = (int) (size.getHeight() * 0.8);
+                int x0 = (int) (size.getWidth() * 0.5);
+                int y0 = (int) (size.getHeight() * 0.2);
+                MultiTouchAction touch = new MultiTouchAction(driver);
+                touch.add(new TouchAction<>(driver).press(point(x1, y1))
+                        .waitAction(WaitOptions
+                                .waitOptions(Duration.ofSeconds(2)))
+                        .moveTo(point(x0, y0)).release())
+                        .perform();
+                if(i==10){
+                    reportStep("The element with accessibility: " + accessibility + " could not be clicked", "FAIL");
+                }
+            }
+        }
+    }
+
+    public boolean scrollFromUpToDowninApp() {
+        try {
+            Dimension size = driver.manage().window().getSize();
+            int x1 = (int) (size.getWidth() * 0.5);
+            int y1 = (int) (size.getHeight() * 0.2);
+            int x0 = (int) (size.getWidth() * 0.5);
+            int y0 = (int) (size.getHeight() * 0.8);
+            MultiTouchAction touch = new MultiTouchAction(driver);
+            touch.add(new TouchAction<>(driver).press(point(x1, y1))
+                    .waitAction(WaitOptions.
+                            waitOptions(Duration.ofSeconds(2)))
+                    .moveTo(point(x0, y0)).release())
+                    .perform();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return true;
+    }
+
+    public boolean scrollFromRightToLeftinApp() {
+        try {
+            Dimension size = driver.manage().window().getSize();
+            int x1 = (int) (size.getWidth() * 0.8);
+            int y1 = (int) (size.getHeight() * 0.5);
+            int x0 = (int) (size.getWidth() * 0.2);
+            int y0 = (int) (size.getHeight() * 0.5);
+            MultiTouchAction touch = new MultiTouchAction(driver);
+            touch.add(new TouchAction<>(driver).press(point(x1, y1))
+                    .waitAction(WaitOptions.
+                            waitOptions(Duration.ofSeconds(2)))
+                    .moveTo(point(x0, y0)).release())
+                    .perform();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return true;
+    }
+
+    public boolean eleIsDisplayed(WebElement ele) {
+
+        try {
+            if (ele.isDisplayed())
+                return true;
+        } catch (Exception e) {
+            return false;
+        }
+        return false;
+    }
+
+    public void eleIsDisplayed(String xpath) {
+        MobileElement ele = driver.findElementByXPath(xpath);
+        try {
+            if (ele.isDisplayed())
+                reportStep("The element with xpath: " + xpath + " displayed successfully", "PASS");
+        } catch (Exception e) {
+            reportStep("The element with xpath: " + xpath + " NOT displayed", "FAIL");
+        }
+    }
+
+
+    public boolean scrollFromUpToDowninAppWithWebElement(WebElement ele) {
+        try {
+            int x = ele.getLocation().getX();
+            int y = ele.getLocation().getY();
+
+            int x1 = x + 135;
+            int y1 = y + 10;
+            int x0 = x + 135;
+            int y0 = y + 500;
+            MultiTouchAction touch = new MultiTouchAction(driver);
+            touch.add(new TouchAction<>(driver).press(point(x1, y1))
+                    .waitAction(WaitOptions.
+                            waitOptions(Duration.ofSeconds(2)))
+                    .moveTo(point(x0, y0)).release())
+                    .perform();
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean scrollFromDownToUpinAppWithWebElement(WebElement ele) {
+        try {
+            int x = ele.getLocation().getX();
+            int y = ele.getLocation().getY();
+
+            int x1 = x + 135;
+            int y1 = y + 10;
+            int x0 = x + 135;
+            int y0 = y + 1400;
+            MultiTouchAction touch = new MultiTouchAction(driver);
+            touch.add(new TouchAction<>(driver).press(point(x0, y0))
+                    .waitAction(WaitOptions.
+                            waitOptions(Duration.ofSeconds(2)))
+                    .moveTo(point(x1, y1)).release())
+                    .perform();
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+
+    }
+
+    public void enterById(String id, String text) {
+        try {
+            driver.findElementById(id).sendKeys(text);
+            reportStep("The data: " + text + " entered successfully in element :" + id, "PASS");
+
+        } catch (NoSuchElementException e) {
+            reportStep("The data: " + text + " coundn't be entered in element :" + id, "PASS");
+        } catch (Exception e) {
+            e.printStackTrace();
+            reportStep("Unknown exception occured while entering text in element with id" + id + "", "FAIL");
         }
 
     }

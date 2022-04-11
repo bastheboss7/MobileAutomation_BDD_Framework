@@ -4,7 +4,7 @@ Feature: ShoppingList
     Given I login with email and password
     And Skip tutorials
 
-  @regression
+#  @smoke
   Scenario: User is able to create/delete shopping list
 
     When I create a new shopping list

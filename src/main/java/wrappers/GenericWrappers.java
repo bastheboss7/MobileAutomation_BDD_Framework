@@ -503,7 +503,7 @@ public class GenericWrappers extends Reporter {
     public void clickByXpath(String xpathVal) {
         try {
             driver.findElement(By.xpath(xpathVal)).click();
-            reportStep("The element : " + xpathVal + " is clicked.", "INFO");
+            reportStep("The element : " + xpathVal + " is clicked.", "PASS");
         } catch (WebDriverException e) {
             reportStep("The element with xpath: " + xpathVal + " could not be clicked.", "FAIL");
         }

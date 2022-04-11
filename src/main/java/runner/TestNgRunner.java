@@ -12,12 +12,10 @@ import org.testng.annotations.Test;
 //import cucumber.api.junit.Cucumber;
 import wrappers.LeafTapsWrappers;
 
-//@RunWith(Cucumber.class)
-
 @CucumberOptions(
 //        tags can be used while debugging/need basis
-//        tags = ("@smoke"),
-        features = {"src/main/java/features/ShoppingList.feature"},
+        tags = ("@smoke"),
+        features = {"src/main/java/features"},
                 glue 	  = {"pages"},
         plugin = {
         "summary",

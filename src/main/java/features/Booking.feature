@@ -3,7 +3,7 @@ Feature: Booking creation
   Background:
     Given I signin with existing mail
 
-  @smoke
+#  @smoke
   Scenario: Perform search for specific dates
 
     When Enter my destination

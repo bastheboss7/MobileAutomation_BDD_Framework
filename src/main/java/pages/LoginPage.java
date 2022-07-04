@@ -1,28 +1,21 @@
 package pages;
 
-import io.appium.java_client.MobileElement;
-import io.appium.java_client.pagefactory.AndroidFindBy;
-import io.appium.java_client.pagefactory.HowToUseLocators;
-import io.appium.java_client.pagefactory.LocatorGroupStrategy;
-import io.appium.java_client.pagefactory.iOSXCUITFindBy;
-import io.cucumber.java.en.*;
-import org.openqa.selenium.WebElement;
-import org.openqa.selenium.support.FindBy;
-import org.openqa.selenium.support.PageFactory;
-import org.openqa.selenium.support.ui.ExpectedCondition;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.WebDriverWait;
-import org.testng.Assert;
-import wrappers.LeafTapsWrappers;
-public class LoginPage extends LeafTapsWrappers {
+import io.cucumber.java.en.Then;
+import io.cucumber.java.en.When;
+import wrappers.SkyWrappers;
 
+public class LoginPage extends SkyWrappers {
 
-	@When("I login with email and password")
-	public void iLoginWithEmailAndPassword() {
-		reportStep("Login to application", "INFO");
-		clickByAccessibility(prop.getProperty("LoginPage.SignIn.Accessibility"));
-		enterByAccessibity(prop.getProperty("LoginPage.Email.Accessibility"), prop.getProperty("LoginPage.UserName.Data") );
-		enterByAccessibity(prop.getProperty("LoginPage.Password.Accessibility"), prop.getProperty("LoginPage.Password.Data") );
-		clickByAccessibility(prop.getProperty("LoginPage.Submit.Accessibility"));
+	@When("I try to sign in with invalid credentials")
+	public void signInInvalid(){
+		clickByXpath(prop.getProperty("Home.SignIn.Xpath"));
+		switchToiFrameByXpath(prop.getProperty("LoginPage.Cookies.Xpath"));
+		enterByXpath(prop.getProperty("LoginPage.UserName.Xpath"),prop.getProperty("LoginPage.UserName.Data") );
+		clickByXpath(prop.getProperty("LoginPage.ContinueBtn.Xpath"));
+	}
+
+	@Then("I should see a box with the text ‘Create your My Sky password’")
+	public void assertPasswordBox(){
+		verifyTextByXpath(prop.getProperty("LoginPage.PasswordMsg.Xpath"),"Create your My Sky password");
 	}
 }

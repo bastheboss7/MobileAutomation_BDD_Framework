@@ -1,5 +1,10 @@
 package wrappers;
 
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.StaleElementReferenceException;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.AfterTest;
@@ -10,7 +15,7 @@ import org.testng.annotations.DataProvider;
 
 import utils.DataInputProvider;
 
-public class LeafTapsWrappers extends GenericWrappers {
+public class SkyWrappers extends GenericWrappers {
 	
 	public static String excelName;
 
@@ -50,6 +55,5 @@ public class LeafTapsWrappers extends GenericWrappers {
 	public  Object[][] getData(){
 		System.out.println("I am inside dataprovider");
 		return DataInputProvider.readExcel(excelName);		
-	}	
-	
+	}
 }

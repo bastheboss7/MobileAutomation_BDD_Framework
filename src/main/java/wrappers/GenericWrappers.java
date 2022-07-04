@@ -1,7 +1,12 @@
 package wrappers;
 
-import io.appium.java_client.*;
+import com.google.common.collect.ImmutableMap;
+import io.appium.java_client.AppiumDriver;
+import io.appium.java_client.MobileElement;
+import io.appium.java_client.MultiTouchAction;
+import io.appium.java_client.TouchAction;
 import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.remote.MobileCapabilityType;
 import io.appium.java_client.touch.WaitOptions;
 import org.apache.commons.io.FileUtils;
 import org.openqa.selenium.*;
@@ -27,7 +32,7 @@ public class GenericWrappers extends Reporter {
 
 
     //    protected static final ThreadLocal<GenericWrappers> driverThreadLocal = new ThreadLocal<>();
-    public static AppiumDriver<MobileElement> driver;
+    public static AppiumDriver<WebElement> driver;
     public static Properties prop;
     public String sHubUrl;
     public String systemPort;
@@ -39,6 +44,8 @@ public class GenericWrappers extends Reporter {
     //    public String path = "C:\\Users\\dell\\AppData\\Local\\Programs\\Appium\\resources\\app\\node_modules\\appium\\node_modules\\appium-chromedriver\\chromedriver\\win\\chromedriver.exe";
     public WebDriverWait wait;
     public String apkPath;
+    public String webAutomation;
+    public String url;
 
     public GenericWrappers() {
         Properties prop = new Properties();
@@ -52,6 +59,8 @@ public class GenericWrappers extends Reporter {
             udid = prop.getProperty("udid");
             apkPath = prop.getProperty("apkPath");
             installApp = prop.getProperty("installApp");
+            webAutomation = prop.getProperty("webAutomation");
+            url = prop.getProperty("url");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -83,8 +92,13 @@ public class GenericWrappers extends Reporter {
     public synchronized AppiumDriver invokeApp() {
         try {
             DesiredCapabilities dc = new DesiredCapabilities();
-            dc.setCapability("appPackage", appPackage);
-            dc.setCapability("appActivity", appActivity);
+            if(webAutomation.equalsIgnoreCase("No")) {
+                dc.setCapability("appPackage", appPackage);
+                dc.setCapability("appActivity", appActivity);
+            } else {
+                dc.setCapability(MobileCapabilityType.BROWSER_NAME, "Chrome");
+                dc.setCapability("appium:chromeOptions", ImmutableMap.of("w3c", false));
+            }
             dc.setCapability("deviceName", deviceName);
             dc.setCapability("automationName", "UiAutomator2");
             dc.setCapability("noReset", false);
@@ -92,7 +106,10 @@ public class GenericWrappers extends Reporter {
             dc.setCapability("systemPort", systemPort);
 //            dc.setCapability("chromedriverExecutable", path);
             dc.setCapability("newCommandTimeout", 6000);
-            driver = new AndroidDriver<MobileElement>(new URL(sHubUrl), dc);
+            driver = new AndroidDriver<WebElement>(new URL(sHubUrl), dc);
+            if(webAutomation.equalsIgnoreCase("Yes")) {
+                driver.get(url);
+            }
             driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
             if (installApp.equalsIgnoreCase("true")) {
                 driver.installApp(apkPath);
@@ -209,28 +226,23 @@ public class GenericWrappers extends Reporter {
 
     }
 
-    public void scrollFromDownToUpinApp(String accessibility) {
-        for (int i=0;i<=10;i++) {
-            try {
-                driver.findElementByAccessibilityId(accessibility).click();
-                reportStep("The element with accessibility: " + accessibility + " clicked successfully", "PASS");
-                break;
-            } catch (NoSuchElementException e) {
-                Dimension size = driver.manage().window().getSize();
-                int x1 = (int) (size.getWidth() * 0.5);
-                int y1 = (int) (size.getHeight() * 0.8);
-                int x0 = (int) (size.getWidth() * 0.5);
-                int y0 = (int) (size.getHeight() * 0.2);
-                MultiTouchAction touch = new MultiTouchAction(driver);
-                touch.add(new TouchAction<>(driver).press(point(x1, y1))
-                        .waitAction(WaitOptions
-                                .waitOptions(Duration.ofSeconds(2)))
-                        .moveTo(point(x0, y0)).release())
-                        .perform();
-                if(i==10){
-                    reportStep("The element with accessibility: " + accessibility + " could not be clicked", "FAIL");
-                }
-            }
+    public boolean scrollFromDownToUpinApp(String xpath) {
+        try {
+            Dimension size = driver.manage().window().getSize();
+            int x1 = (int) (size.getWidth() * 0.5);
+            int y1 = (int) (size.getHeight() * 0.8);
+            int x0 = (int) (size.getWidth() * 0.5);
+            int y0 = (int) (size.getHeight() * 0.2);
+            MultiTouchAction touch = new MultiTouchAction(driver);
+            touch.add(new TouchAction<>(driver).press(point(x1, y1))
+                    .waitAction(WaitOptions
+                            .waitOptions(Duration.ofSeconds(2)))
+                    .moveTo(point(x0, y0)).release())
+                    .perform();
+            driver.findElementByXPath(xpath);
+            return true;
+        } catch (Exception e) {
+            return false;
         }
     }
 
@@ -284,12 +296,28 @@ public class GenericWrappers extends Reporter {
     }
 
     public void eleIsDisplayed(String xpath) {
-        MobileElement ele = driver.findElementByXPath(xpath);
         try {
-            if (ele.isDisplayed())
+            WebElement ele = driver.findElementByXPath(xpath);
+            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", ele);
+            if (ele.isDisplayed()) {
                 reportStep("The element with xpath: " + xpath + " displayed successfully", "PASS");
+            }
         } catch (Exception e) {
+            e.printStackTrace();
             reportStep("The element with xpath: " + xpath + " NOT displayed", "FAIL");
+        }
+    }
+
+    public void eleIsDisplayedById(String id) {
+        try {
+           WebElement ele = driver.findElementById(id);
+            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", ele);
+            if (ele.isDisplayed()) {
+                reportStep("The element with id: " + id + " displayed successfully", "PASS");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            reportStep("The element with id: " + id + " NOT displayed", "FAIL");
         }
     }
 
@@ -639,16 +667,29 @@ public class GenericWrappers extends Reporter {
 
     }
 
-    public String getAlertText() {
-        String text = null;
-        try {
-            driver.switchTo().alert().dismiss();
-        } catch (NoAlertPresentException e) {
-            reportStep("The alert could not be found.", "FAIL");
-        } catch (Exception e) {
-            reportStep("The alert could not be accepted.", "FAIL");
-        }
-        return null;
+	public void switchToiFrameByXpath(String iFrameXpath) {
+		try {
+			WebDriverWait wait = new WebDriverWait(driver,30);
+			wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(By.xpath(iFrameXpath)));
+			WebElement iFrame = driver.findElementByXPath(iFrameXpath);
+			driver.switchTo().frame(iFrame);
+		} catch (Exception e) {
+			e.printStackTrace();
+			reportStep("Some error occured.", "FAIL");
+		}
+
+	}
+
+	public String getAlertText() {		
+		String text = null;
+		try {
+			driver.switchTo().alert().dismiss();
+		} catch (NoAlertPresentException e) {
+			reportStep("The alert could not be found.", "FAIL");
+		} catch (Exception e) {
+			reportStep("The alert could not be accepted.", "FAIL");
+		}
+		return null;
 
     }
 

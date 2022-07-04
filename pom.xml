@@ -133,7 +133,7 @@
 							<goal>generate</goal>
 						</goals>
 						<configuration>
-							<projectName>Scan And Go Mobile</projectName>
+							<projectName>SkyWeb Automation</projectName>
 							<outputDirectory>target/reports/cucumber-report</outputDirectory>
 							<jsonFiles>
 								<param>**/*.json</param>

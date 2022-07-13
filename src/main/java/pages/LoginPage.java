@@ -18,4 +18,13 @@ public class LoginPage extends SkyWrappers {
 	public void assertPasswordBox(){
 		verifyTextByXpath(prop.getProperty("LoginPage.PasswordMsg.Xpath"),"Create your My Sky password");
 	}
+
+	@When("I login with email and password")
+	public void iLoginWithEmailAndPassword() {
+		reportStep("Login to application", "INFO");
+		clickByAccessibility(prop.getProperty("LoginPage.SignIn.Accessibility"));
+		enterByAccessibity(prop.getProperty("LoginPage.Email.Accessibility"), prop.getProperty("LoginPage.UserName.AsdaData") );
+		enterByAccessibity(prop.getProperty("LoginPage.Password.Accessibility"), prop.getProperty("LoginPage.Password.Data") );
+		clickByAccessibility(prop.getProperty("LoginPage.Submit.Accessibility"));
+	}
 }

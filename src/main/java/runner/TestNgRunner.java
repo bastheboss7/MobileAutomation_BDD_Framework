@@ -12,7 +12,7 @@ import wrappers.SkyWrappers;
 
 @CucumberOptions(
 //        tags can be used while debugging/need basis
-//        tags = ("@Scenario4"),
+        tags = ("@Scenario4"),
         features = {"src/main/java/features"},
                 glue 	  = {"pages"},
         plugin = {

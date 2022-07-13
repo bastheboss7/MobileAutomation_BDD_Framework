@@ -30,4 +30,5 @@ Both the reporting files have been uploaded to git for the reference.
 Allure report can be found at, target/reports/allure-report
 
 #Allure Report cmd
+
 allure serve target/reports/allure-report

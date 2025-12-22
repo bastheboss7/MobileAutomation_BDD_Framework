@@ -8,14 +8,13 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
-import wrappers.SkyWrappers;
 
 /**
  * TestNG Cucumber Runner class.
  * Configures and executes Cucumber scenarios using TestNG.
  * 
  * @author Baskar
- * @version 1.0.0
+ * @version 3.0.0
  */
 @CucumberOptions(
         tags = "@Login and @Smoke",
@@ -29,7 +28,7 @@ import wrappers.SkyWrappers;
         },
         monochrome = true
 )
-public class TestNgRunner extends SkyWrappers {
+public class TestNgRunner {
 
     private TestNGCucumberRunner testNGCucumberRunner;
 

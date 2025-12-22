@@ -5,6 +5,7 @@
     
     <listeners>
         <listener class-name="org.testng.reporters.XMLReporter"/>
+        <listener class-name="com.automation.framework.listeners.ExtentReportListener"/>
     </listeners>
 
     <test name="Mobile-BDD-Tests">

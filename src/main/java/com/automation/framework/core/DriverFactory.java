@@ -79,9 +79,10 @@ public class DriverFactory {
         options.setNewCommandTimeout(Duration.ofSeconds(
                 ConfigManager.getInt("newCommandTimeout", 6000)));
         
-        // System port for UiAutomator2
-        int systemPort = ConfigManager.getInt("PORT", 8203);
-        options.setSystemPort(systemPort);
+        // Use dynamic system port to avoid conflicts in parallel execution
+        int dynamicPort = 8200 + (int)(Math.random() * 100);
+        options.setSystemPort(dynamicPort);
+        logger.info("Using dynamic systemPort: {}", dynamicPort);
         
         // Native app configuration
         String appPackage = ConfigManager.get("appPackage");
@@ -92,10 +93,14 @@ public class DriverFactory {
             options.setAppActivity(appActivity);
         }
         
-        // Install app if specified
+        // Install app - resolve relative path to absolute
         String apkPath = ConfigManager.get("apkPath");
-        if (ConfigManager.getBoolean("installApp", false) && apkPath != null) {
+        if (apkPath != null && !apkPath.isEmpty()) {
+            if (!apkPath.startsWith("/")) {
+                apkPath = System.getProperty("user.dir") + "/" + apkPath;
+            }
             options.setApp(apkPath);
+            logger.info("Setting APK path for auto-install: {}", apkPath);
         }
         
         logger.info("Configured for Android native app: {}", appPackage);
@@ -133,13 +138,18 @@ public class DriverFactory {
         
         // Native app configuration
         String bundleId = ConfigManager.get("bundleId");
-        if (bundleId != null) {
+        if (bundleId != null && !bundleId.isEmpty()) {
             options.setBundleId(bundleId);
         }
         
+        // Install app - resolve relative path to absolute
         String appPath = ConfigManager.get("iosAppPath");
-        if (ConfigManager.getBoolean("installApp", false) && appPath != null) {
+        if (appPath != null && !appPath.isEmpty()) {
+            if (!appPath.startsWith("/")) {
+                appPath = System.getProperty("user.dir") + "/" + appPath;
+            }
             options.setApp(appPath);
+            logger.info("Setting iOS app path for install: {}", appPath);
         }
         
         logger.info("Configured for iOS native app: {}", bundleId);

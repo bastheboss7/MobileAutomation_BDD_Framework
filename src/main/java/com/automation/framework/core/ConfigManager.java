@@ -5,7 +5,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Properties;
 
 /**
@@ -35,35 +34,23 @@ public class ConfigManager {
     
     /**
      * Initialize configuration from properties files.
-     * Loads base config, then environment-specific overrides.
+     * Loads base config.properties file.
      */
     public static synchronized void init() {
         if (initialized) {
             return;
         }
         
-        String env = getEnvironment();
-        String platform = getPlatform();
-        
-        logger.info("Initializing ConfigManager for env: {}, platform: {}", env, platform);
+        logger.info("Initializing ConfigManager...");
         
         try {
             // Load base configuration
             loadProperties("src/main/resources/config.properties", properties);
             
-            // Load environment-specific config if exists
-            String envConfigPath = "src/main/resources/config/environments/" + env + ".properties";
-            loadPropertiesIfExists(envConfigPath, properties);
-            
-            // Load platform-specific config if exists
-            String platformConfigPath = "src/main/resources/config/" + platform + ".properties";
-            loadPropertiesIfExists(platformConfigPath, properties);
-            
-            // Load object locators
-            loadProperties("src/main/resources/object.properties", objectProperties);
-            
             initialized = true;
-            logger.info("ConfigManager initialized successfully");
+            
+            // Log platform after initialization (safe to call getPlatform now)
+            logger.info("ConfigManager initialized - platform: {}", getPlatform());
             
         } catch (IOException e) {
             logger.error("Failed to load configuration", e);
@@ -78,15 +65,6 @@ public class ConfigManager {
         }
     }
     
-    private static void loadPropertiesIfExists(String path, Properties props) {
-        try (FileInputStream fis = new FileInputStream(path)) {
-            props.load(fis);
-            logger.debug("Loaded properties from: {}", path);
-        } catch (IOException e) {
-            logger.debug("Optional properties file not found: {}", path);
-        }
-    }
-    
     /**
      * Get current environment from system property or default.
      */
@@ -95,10 +73,23 @@ public class ConfigManager {
     }
     
     /**
-     * Get current platform from system property or default.
+     * Get current platform from system property or config file.
+     * Priority: System property > config.properties > default
      */
     public static String getPlatform() {
-        return System.getProperty(PLATFORM_KEY, DEFAULT_PLATFORM);
+        // First check system property (for CI/command line override)
+        String systemPlatform = System.getProperty(PLATFORM_KEY);
+        if (systemPlatform != null && !systemPlatform.isEmpty()) {
+            return systemPlatform;
+        }
+        // Then check config.properties
+        ensureInitialized();
+        String configPlatform = properties.getProperty(PLATFORM_KEY);
+        if (configPlatform != null && !configPlatform.isEmpty()) {
+            return configPlatform;
+        }
+        // Fall back to default
+        return DEFAULT_PLATFORM;
     }
     
     /**

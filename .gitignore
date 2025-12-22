@@ -1,0 +1,46 @@
+# Build outputs
+target/
+build/
+out/
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test outputs
+/reports/
+test-output/
+*.log
+testng-failed.xml
+extent-reports/
+screenshots/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+
+# Environment files
+.env
+.env.local
+
+# Maven wrapper
+.mvn/wrapper/maven-wrapper.jar
+
+# Appium/Selenium drivers
+chromedriver
+geckodriver
+drivers/
+
+# Mobile app binaries
+src/app/

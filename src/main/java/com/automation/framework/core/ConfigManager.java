@@ -9,16 +9,22 @@ import java.util.Properties;
 
 /**
  * Environment-aware configuration manager.
- * Supports multiple environments (dev, staging, prod) and platforms (android, ios).
+ * Supports multiple environments (local, staging, prod) and platforms (android, ios).
+ * 
+ * Environment loading priority:
+ * 1. config.properties (base defaults)
+ * 2. config-{env}.properties (environment-specific overrides)
+ * 3. System properties (CLI overrides)
  * 
  * @author Baskar
- * @version 2.0.0
+ * @version 3.0.0
  */
 public class ConfigManager {
     private static final Logger logger = LoggerFactory.getLogger(ConfigManager.class);
     private static final Properties properties = new Properties();
     private static final Properties objectProperties = new Properties();
     private static boolean initialized = false;
+    private static String currentEnvironment;
     
     // System property keys
     public static final String ENV_KEY = "env";
@@ -27,6 +33,7 @@ public class ConfigManager {
     // Default values
     private static final String DEFAULT_ENV = "local";
     private static final String DEFAULT_PLATFORM = "android";
+    private static final String CONFIG_BASE_PATH = "src/main/resources/";
     
     private ConfigManager() {
         // Private constructor
@@ -34,7 +41,7 @@ public class ConfigManager {
     
     /**
      * Initialize configuration from properties files.
-     * Loads base config.properties file.
+     * Loads base config.properties, then environment-specific overrides.
      */
     public static synchronized void init() {
         if (initialized) {
@@ -42,15 +49,26 @@ public class ConfigManager {
         }
         
         logger.info("Initializing ConfigManager...");
+        currentEnvironment = System.getProperty(ENV_KEY, DEFAULT_ENV);
         
         try {
-            // Load base configuration
-            loadProperties("src/main/resources/config.properties", properties);
+            // Step 1: Load base configuration
+            loadProperties(CONFIG_BASE_PATH + "config.properties", properties);
+            logger.info("Loaded base configuration");
+            
+            // Step 2: Load environment-specific configuration (overrides base)
+            String envConfigPath = CONFIG_BASE_PATH + "config-" + currentEnvironment + ".properties";
+            try {
+                loadProperties(envConfigPath, properties);
+                logger.info("Loaded environment configuration: {}", currentEnvironment);
+            } catch (IOException e) {
+                logger.warn("No environment-specific config found for '{}', using base config only", currentEnvironment);
+            }
             
             initialized = true;
             
-            // Log platform after initialization (safe to call getPlatform now)
-            logger.info("ConfigManager initialized - platform: {}", getPlatform());
+            // Log configuration summary
+            logger.info("ConfigManager initialized - env: {}, platform: {}", currentEnvironment, getPlatform());
             
         } catch (IOException e) {
             logger.error("Failed to load configuration", e);
@@ -69,7 +87,7 @@ public class ConfigManager {
      * Get current environment from system property or default.
      */
     public static String getEnvironment() {
-        return System.getProperty(ENV_KEY, DEFAULT_ENV);
+        return currentEnvironment != null ? currentEnvironment : System.getProperty(ENV_KEY, DEFAULT_ENV);
     }
     
     /**

@@ -1,5 +1,6 @@
-package pages;
+package stepdefinitions;
 
+import com.automation.framework.core.ConfigManager;
 import com.automation.framework.core.DriverFactory;
 import com.automation.framework.core.DriverManager;
 import com.automation.framework.reports.ExtentReportManager;
@@ -17,7 +18,7 @@ import org.slf4j.LoggerFactory;
  * Integrates with Extent Reports for detailed reporting.
  * 
  * @author Baskar
- * @version 3.1.0
+ * @version 4.0.0
  */
 public class Hooks {
     private static final Logger logger = LoggerFactory.getLogger(Hooks.class);
@@ -44,8 +45,10 @@ public class Hooks {
     
     @AfterStep
     public void afterStep(Scenario scenario) {
-        // Capture screenshot after each step
-        if (DriverManager.hasDriver()) {
+        // Check if step screenshots are enabled (configurable to reduce report bloat)
+        boolean captureStepScreenshots = ConfigManager.getBoolean("screenshot.on.step", false);
+        
+        if (captureStepScreenshots && DriverManager.hasDriver()) {
             try {
                 byte[] screenshot = DriverManager.getDriver().getScreenshotAs(OutputType.BYTES);
                 scenario.attach(screenshot, "image/png", "Step Screenshot");

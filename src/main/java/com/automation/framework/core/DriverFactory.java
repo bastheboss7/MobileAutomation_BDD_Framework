@@ -11,16 +11,21 @@ import org.slf4j.LoggerFactory;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Factory class for creating platform-specific Appium drivers.
  * Supports Android, iOS, and Web automation.
  * 
  * @author Baskar
- * @version 2.0.0
+ * @version 2.1.0
  */
 public class DriverFactory {
     private static final Logger logger = LoggerFactory.getLogger(DriverFactory.class);
+    
+    // Atomic counter for thread-safe port allocation (avoids collision)
+    private static final AtomicInteger portCounter = new AtomicInteger(8200);
+    private static final int MAX_PORT = 8299;
     
     public enum Platform {
         ANDROID,
@@ -79,10 +84,14 @@ public class DriverFactory {
         options.setNewCommandTimeout(Duration.ofSeconds(
                 ConfigManager.getInt("newCommandTimeout", 6000)));
         
-        // Use dynamic system port to avoid conflicts in parallel execution
-        int dynamicPort = 8200 + (int)(Math.random() * 100);
+        // Use atomic counter for thread-safe port allocation in parallel execution
+        int dynamicPort = portCounter.getAndIncrement();
+        if (dynamicPort > MAX_PORT) {
+            portCounter.set(8200);
+            dynamicPort = portCounter.getAndIncrement();
+        }
         options.setSystemPort(dynamicPort);
-        logger.info("Using dynamic systemPort: {}", dynamicPort);
+        logger.info("Allocated systemPort: {} (thread-safe)", dynamicPort);
         
         // Native app configuration
         String appPackage = ConfigManager.get("appPackage");

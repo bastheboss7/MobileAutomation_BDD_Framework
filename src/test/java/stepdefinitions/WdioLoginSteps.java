@@ -1,19 +1,19 @@
-package pages;
+package stepdefinitions;
 
+import com.automation.framework.pages.screens.LoginScreen;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import pages.screens.LoginScreen;
 
 /**
  * Step definitions for WDIO Demo App Login feature.
  * Uses Page Object Model - delegates to LoginScreen for actions.
  * 
  * @author Baskar
- * @version 2.0.0
+ * @version 3.0.0
  */
-public class WdioLoginPage extends LoginScreen {
+public class WdioLoginSteps extends LoginScreen {
 
     @Given("I navigate to the Login screen")
     public void iNavigateToTheLoginScreen() {

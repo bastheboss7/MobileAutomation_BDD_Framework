@@ -14,12 +14,12 @@ import org.testng.annotations.Test;
  * Configures and executes Cucumber scenarios using TestNG.
  * 
  * @author Baskar
- * @version 3.0.0
+ * @version 4.0.0
  */
 @CucumberOptions(
         tags = "@Login and @Smoke",
-        features = "src/main/java/features",
-        glue = "pages",
+        features = "src/test/resources/features",
+        glue = "stepdefinitions",
         plugin = {
                 "summary",
                 "pretty",
@@ -42,7 +42,7 @@ public class TestNgRunner {
         testNGCucumberRunner.runScenario(pickleWrapper.getPickle());
     }
 
-    @DataProvider(name = "scenarios",parallel=false)
+    @DataProvider(name = "scenarios", parallel = false)
     public Object[][] features() {
         return testNGCucumberRunner.provideScenarios();
     }

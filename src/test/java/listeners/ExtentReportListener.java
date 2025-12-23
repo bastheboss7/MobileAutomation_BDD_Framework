@@ -1,4 +1,4 @@
-package com.automation.framework.listeners;
+package listeners;
 
 import com.automation.framework.reports.ExtentReportManager;
 import org.slf4j.Logger;
@@ -10,7 +10,7 @@ import org.testng.IExecutionListener;
  * Ensures reports are flushed after all tests complete.
  * 
  * @author Baskar
- * @version 1.0.0
+ * @version 2.0.0
  */
 public class ExtentReportListener implements IExecutionListener {
     private static final Logger logger = LoggerFactory.getLogger(ExtentReportListener.class);

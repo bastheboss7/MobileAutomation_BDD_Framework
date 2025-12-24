@@ -23,9 +23,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class DriverFactory {
     private static final Logger logger = LoggerFactory.getLogger(DriverFactory.class);
     
-    // Atomic counter for thread-safe port allocation (avoids collision)
-    private static final AtomicInteger portCounter = new AtomicInteger(8200);
-    private static final int MAX_PORT = 8299;
+    // Atomic counters for thread-safe port allocation (avoids collision in parallel execution)
+    private static final AtomicInteger androidPortCounter = new AtomicInteger(8200);
+    private static final int ANDROID_MAX_PORT = 8299;
+    
+    private static final AtomicInteger wdaPortCounter = new AtomicInteger(8100);
+    private static final int WDA_MAX_PORT = 8199;
     
     public enum Platform {
         ANDROID,
@@ -85,13 +88,13 @@ public class DriverFactory {
                 ConfigManager.getInt("newCommandTimeout", 6000)));
         
         // Use atomic counter for thread-safe port allocation in parallel execution
-        int dynamicPort = portCounter.getAndIncrement();
-        if (dynamicPort > MAX_PORT) {
-            portCounter.set(8200);
-            dynamicPort = portCounter.getAndIncrement();
+        int dynamicPort = androidPortCounter.getAndIncrement();
+        if (dynamicPort > ANDROID_MAX_PORT) {
+            androidPortCounter.set(8200);
+            dynamicPort = androidPortCounter.getAndIncrement();
         }
         options.setSystemPort(dynamicPort);
-        logger.info("Allocated systemPort: {} (thread-safe)", dynamicPort);
+        logger.info("Allocated Android systemPort: {} (thread-safe)", dynamicPort);
         
         // Native app configuration
         String appPackage = ConfigManager.get("appPackage");
@@ -141,9 +144,14 @@ public class DriverFactory {
         options.setNewCommandTimeout(Duration.ofSeconds(
                 ConfigManager.getInt("newCommandTimeout", 6000)));
         
-        // WDA configuration
-        int wdaPort = ConfigManager.getInt("wdaLocalPort", 8100);
+        // WDA configuration - use atomic counter for thread-safe port allocation
+        int wdaPort = wdaPortCounter.getAndIncrement();
+        if (wdaPort > WDA_MAX_PORT) {
+            wdaPortCounter.set(8100);
+            wdaPort = wdaPortCounter.getAndIncrement();
+        }
         options.setWdaLocalPort(wdaPort);
+        logger.info("Allocated iOS wdaLocalPort: {} (thread-safe)", wdaPort);
         
         // Native app configuration
         String bundleId = ConfigManager.get("bundleId");

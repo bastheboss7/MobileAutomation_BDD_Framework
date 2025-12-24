@@ -14,18 +14,9 @@ import java.time.Duration;
  * Follows Page Object Model pattern with locators externalized.
  * 
  * @author Baskar
- * @version 4.0.0
+ * @version 4.3.0
  */
 public class LoginScreen extends BasePage {
-    
-    private static final int WAIT_TIMEOUT_SECONDS = 10;
-    
-    /**
-     * Navigate to the Login screen via bottom navigation.
-     */
-    public void navigateToLoginScreen() {
-        clickByAccessibility(WdioLocators.NAV_LOGIN);
-    }
     
     /**
      * Enter email/username in the login form.
@@ -68,7 +59,7 @@ public class LoginScreen extends BasePage {
      */
     public boolean isSuccessMessageDisplayed() {
         try {
-            WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(WAIT_TIMEOUT_SECONDS));
+            WebDriverWait wait = getWait();
             
             // Strategy 1: Try to find success alert by XPath
             try {
@@ -96,31 +87,34 @@ public class LoginScreen extends BasePage {
     
     /**
      * Verify error message is displayed.
-     * Uses element-based waits for reliability.
+     * Uses SHORT timeouts since we're checking for presence, not waiting for appearance.
      * @return true if any error indication is present
      */
     public boolean isErrorMessageDisplayed() {
+        // Use short timeout (3s) for existence checks - element should already be visible
+        Duration shortTimeout = Duration.ofSeconds(3);
+        WebDriverWait shortWait = getWait(shortTimeout);
+        
         try {
-            WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(WAIT_TIMEOUT_SECONDS));
-            
             // Strategy 1: Try to find error element by accessibility ID
             try {
-                wait.until(ExpectedConditions.presenceOfElementLocated(
+                shortWait.until(ExpectedConditions.presenceOfElementLocated(
                         AppiumBy.accessibilityId(WdioLocators.ERROR_MESSAGE_CONTAINER)));
                 logger.info("Error message container found");
                 return true;
             } catch (Exception e1) {
                 // Strategy 2: Look for error text via XPath
                 try {
-                    wait.until(ExpectedConditions.presenceOfElementLocated(
+                    shortWait.until(ExpectedConditions.presenceOfElementLocated(
                             AppiumBy.xpath(WdioLocators.XPATH_ERROR_ALERT)));
                     logger.info("Error alert found via XPath");
                     return true;
                 } catch (Exception e2) {
-                    // Strategy 3: Check text elements for error keywords
-                    return waitForTextInElements("error", wait) || 
-                           waitForTextInElements("invalid", wait) ||
-                           waitForTextInElements("incorrect", wait);
+                    // Strategy 3: Check text elements for error keywords (1s each max)
+                    WebDriverWait quickWait = getWait(Duration.ofSeconds(1));
+                    return waitForTextInElements("error", quickWait) || 
+                           waitForTextInElements("invalid", quickWait) ||
+                           waitForTextInElements("incorrect", quickWait);
                 }
             }
         } catch (Exception e) {
@@ -131,16 +125,18 @@ public class LoginScreen extends BasePage {
     
     /**
      * Verify validation error is displayed for empty fields.
+     * Uses SHORT timeouts for quick existence checks.
      * @return true if validation error is present
      */
     public boolean isValidationErrorDisplayed() {
+        // Use short timeout (2s) - validation errors appear instantly
+        WebDriverWait shortWait = getWait(Duration.ofSeconds(2));
+        
         try {
-            WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(WAIT_TIMEOUT_SECONDS));
-            
-            // Look for validation error text
-            return waitForTextInElements(WdioLocators.VALIDATION_ERROR_TEXT, wait) ||
-                   waitForTextInElements("required", wait) ||
-                   waitForTextInElements("cannot be empty", wait);
+            // Look for validation error text (1s each max)
+            return waitForTextInElements(WdioLocators.VALIDATION_ERROR_TEXT, shortWait) ||
+                   waitForTextInElements("required", shortWait) ||
+                   waitForTextInElements("cannot be empty", shortWait);
         } catch (Exception e) {
             logger.debug("Validation error not found: {}", e.getMessage());
             return false;
@@ -170,12 +166,13 @@ public class LoginScreen extends BasePage {
     
     /**
      * Check if Login screen is displayed.
+     * Uses short timeout for quick presence check.
      * @return true if on login screen
      */
     public boolean isLoginScreenDisplayed() {
         try {
-            WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(WAIT_TIMEOUT_SECONDS));
-            wait.until(ExpectedConditions.presenceOfElementLocated(
+            // Short timeout (3s) - screen should already be loaded
+            getWait(Duration.ofSeconds(3)).until(ExpectedConditions.presenceOfElementLocated(
                     AppiumBy.accessibilityId(WdioLocators.LOGIN_EMAIL_INPUT)));
             return true;
         } catch (Exception e) {

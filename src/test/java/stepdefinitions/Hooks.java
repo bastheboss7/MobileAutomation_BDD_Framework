@@ -3,6 +3,7 @@ package stepdefinitions;
 import com.automation.framework.core.ConfigManager;
 import com.automation.framework.core.DriverFactory;
 import com.automation.framework.core.DriverManager;
+import com.automation.framework.pages.PageObjectManager;
 import com.automation.framework.reports.ExtentReportManager;
 import com.aventstack.extentreports.Status;
 import io.cucumber.java.After;
@@ -18,7 +19,7 @@ import org.slf4j.LoggerFactory;
  * Integrates with Extent Reports for detailed reporting.
  * 
  * @author Baskar
- * @version 4.0.0
+ * @version 4.1.0
  */
 public class Hooks {
     private static final Logger logger = LoggerFactory.getLogger(Hooks.class);
@@ -47,14 +48,16 @@ public class Hooks {
     public void afterStep(Scenario scenario) {
         // Check if step screenshots are enabled (configurable to reduce report bloat)
         boolean captureStepScreenshots = ConfigManager.getBoolean("screenshot.on.step", false);
+        logger.debug("Step screenshot config: {}, hasDriver: {}", captureStepScreenshots, DriverManager.hasDriver());
         
         if (captureStepScreenshots && DriverManager.hasDriver()) {
             try {
                 byte[] screenshot = DriverManager.getDriver().getScreenshotAs(OutputType.BYTES);
                 scenario.attach(screenshot, "image/png", "Step Screenshot");
                 ExtentReportManager.attachScreenshot(screenshot, "Step Screenshot");
+                logger.info("📸 Step screenshot attached");
             } catch (Exception e) {
-                logger.debug("Could not capture step screenshot: {}", e.getMessage());
+                logger.warn("Could not capture step screenshot: {}", e.getMessage());
             }
         }
     }
@@ -74,10 +77,11 @@ public class Hooks {
             }
         } catch (Exception e) {
             logger.warn("Failed to capture screenshot: {}", e.getMessage());
+        } finally {
+            // ALWAYS clean up resources to prevent leaks
+            PageObjectManager.reset();  // Reset page objects for next scenario
+            DriverManager.quitDriver(); // Quit driver
+            logger.info("Scenario completed: {} - {}", scenario.getName(), scenario.getStatus());
         }
-        
-        // Quit driver
-        DriverManager.quitDriver();
-        logger.info("Scenario completed: {} - {}", scenario.getName(), scenario.getStatus());
     }
 }

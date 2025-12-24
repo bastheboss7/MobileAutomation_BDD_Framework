@@ -1,6 +1,7 @@
 package listeners;
 
 import com.automation.framework.core.ConfigManager;
+import com.automation.framework.reports.ExtentReportManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.IRetryAnalyzer;
@@ -9,9 +10,10 @@ import org.testng.ITestResult;
 /**
  * Retry analyzer for handling flaky mobile tests.
  * Automatically retries failed tests up to a configurable number of times.
+ * Reports retry attempts to both logs and Extent Reports.
  * 
  * @author Baskar
- * @version 2.0.0
+ * @version 2.1.0
  */
 public class RetryAnalyzer implements IRetryAnalyzer {
     private static final Logger logger = LoggerFactory.getLogger(RetryAnalyzer.class);
@@ -38,13 +40,27 @@ public class RetryAnalyzer implements IRetryAnalyzer {
         
         if (retryCount < maxRetry) {
             retryCount++;
-            logger.warn("⚠️ Test '{}' failed. Retrying... Attempt {}/{}", 
+            String retryMessage = String.format("⚠️ Test '%s' failed. Retrying... Attempt %d/%d", 
                     result.getName(), retryCount, maxRetry);
+            
+            // Log to console/file
+            logger.warn(retryMessage);
+            
+            // Log to Extent Report (visible in HTML report)
+            ExtentReportManager.logWarning(retryMessage);
+            
             return true;
         }
         
-        logger.error("❌ Test '{}' failed after {} retry attempts", 
+        String failMessage = String.format("❌ Test '%s' failed after %d retry attempts", 
                 result.getName(), maxRetry);
+        
+        // Log to console/file
+        logger.error(failMessage);
+        
+        // Log to Extent Report
+        ExtentReportManager.logFail(failMessage);
+        
         return false;
     }
 }

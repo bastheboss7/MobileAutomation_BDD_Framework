@@ -17,7 +17,7 @@ import org.testng.annotations.Test;
  * @version 4.0.0
  */
 @CucumberOptions(
-        tags = "@Login and @Smoke",
+        tags = "@Negative",
         features = "src/test/resources/features",
         glue = "stepdefinitions",
         plugin = {

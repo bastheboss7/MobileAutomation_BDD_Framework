@@ -145,10 +145,14 @@ public class ExtentReportManager {
             try {
                 String base64Screenshot = Base64.getEncoder().encodeToString(screenshotBytes);
                 test.info(title, MediaEntityBuilder.createScreenCaptureFromBase64String(base64Screenshot).build());
-                logger.debug("Screenshot attached: {}", title);
+                logger.info("📸 Screenshot attached to Extent Report: {}", title);
             } catch (Exception e) {
                 logger.warn("Failed to attach screenshot: {}", e.getMessage());
             }
+        } else {
+            logger.warn("Cannot attach screenshot - test: {}, screenshotBytes: {}", 
+                    test != null ? "exists" : "NULL", 
+                    screenshotBytes != null ? "exists" : "NULL");
         }
     }
     

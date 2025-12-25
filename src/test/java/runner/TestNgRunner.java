@@ -16,18 +16,12 @@ import org.testng.annotations.Test;
  * @author Baskar
  * @version 4.0.0
  */
-@CucumberOptions(
-        tags = "@Negative",
-        features = "src/test/resources/features",
-        glue = "stepdefinitions",
-        plugin = {
-                "summary",
-                "pretty",
-                "html:target/reports/cucumber-report/cucumber-pretty/",
-                "json:target/reports/cucumber-report/CucumberTestReport.json"
-        },
-        monochrome = true
-)
+@CucumberOptions(tags = "@Negative", features = "src/test/resources/features", glue = "stepdefinitions", plugin = {
+        "summary",
+        "pretty",
+        "html:target/reports/cucumber-report/cucumber-pretty/",
+        "json:target/reports/cucumber-report/CucumberTestReport.json"
+}, monochrome = true)
 public class TestNgRunner {
 
     private TestNGCucumberRunner testNGCucumberRunner;

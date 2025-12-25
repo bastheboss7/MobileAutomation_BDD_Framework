@@ -1,6 +1,7 @@
 package stepdefinitions;
 
 import com.automation.framework.core.ConfigManager;
+import com.automation.framework.core.DevicePool;
 import com.automation.framework.core.DriverFactory;
 import com.automation.framework.core.DriverManager;
 import com.automation.framework.pages.PageObjectManager;
@@ -27,29 +28,29 @@ public class Hooks {
     @Before
     public void launchApplication(Scenario scenario) {
         logger.info("Starting scenario: {}", scenario.getName());
-        
+
         // Create test in Extent Report
         ExtentReportManager.createTest(scenario.getName());
         ExtentReportManager.logInfo("Scenario started: " + scenario.getName());
-        
+
         // Log tags if present
         if (!scenario.getSourceTagNames().isEmpty()) {
             ExtentReportManager.logInfo("Tags: " + scenario.getSourceTagNames());
         }
-        
+
         // Create driver using DriverFactory (handles platform detection)
         DriverFactory.createDriver();
         ExtentReportManager.logInfo("Application launched successfully");
-        
+
         logger.info("Application launched successfully");
     }
-    
+
     @AfterStep
     public void afterStep(Scenario scenario) {
         // Check if step screenshots are enabled (configurable to reduce report bloat)
         boolean captureStepScreenshots = ConfigManager.getBoolean("screenshot.on.step", false);
         logger.debug("Step screenshot config: {}, hasDriver: {}", captureStepScreenshots, DriverManager.hasDriver());
-        
+
         if (captureStepScreenshots && DriverManager.hasDriver()) {
             try {
                 byte[] screenshot = DriverManager.getDriver().getScreenshotAs(OutputType.BYTES);
@@ -61,7 +62,7 @@ public class Hooks {
             }
         }
     }
-    
+
     @After
     public void executeAfterScenario(Scenario scenario) {
         try {
@@ -79,8 +80,9 @@ public class Hooks {
             logger.warn("Failed to capture screenshot: {}", e.getMessage());
         } finally {
             // ALWAYS clean up resources to prevent leaks
-            PageObjectManager.reset();  // Reset page objects for next scenario
+            PageObjectManager.reset(); // Reset page objects for next scenario
             DriverManager.quitDriver(); // Quit driver
+            DevicePool.releaseDevice(); // Release device from pool
             logger.info("Scenario completed: {} - {}", scenario.getName(), scenario.getStatus());
         }
     }

@@ -21,7 +21,7 @@ services:
     networks:
       - appium-grid
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4444/status"]
+      test: [ "CMD", "curl", "-f", "http://localhost:4444/status" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -46,19 +46,13 @@ services:
       - SELENIUM_HOST=selenium-hub
       - SELENIUM_PORT=4444
     volumes:
-      - ./src/app:/app:ro
+      - ./app:/app:ro
       - /dev/bus/usb:/dev/bus/usb
     privileged: true
     networks:
       - appium-grid
     command: >
-      appium
-      --address 0.0.0.0
-      --port 4723
-      --relaxed-security
-      --allow-insecure chromedriver_autodownload
-      --log-timestamp
-      --log-no-colors
+      appium --address 0.0.0.0 --port 4723 --relaxed-security --allow-insecure chromedriver_autodownload --log-timestamp --log-no-colors
 
   # ============================================================================
   # Appium Android Node 2 (for parallel execution)
@@ -80,17 +74,13 @@ services:
       - SELENIUM_HOST=selenium-hub
       - SELENIUM_PORT=4444
     volumes:
-      - ./src/app:/app:ro
+      - ./app:/app:ro
       - /dev/bus/usb:/dev/bus/usb
     privileged: true
     networks:
       - appium-grid
     command: >
-      appium
-      --address 0.0.0.0
-      --port 4723
-      --relaxed-security
-      --allow-insecure chromedriver_autodownload
+      appium --address 0.0.0.0 --port 4723 --relaxed-security --allow-insecure chromedriver_autodownload
 
   # ============================================================================
   # Android Emulator (for CI environments without physical devices)
@@ -99,8 +89,8 @@ services:
     image: budtmo/docker-android:emulator_13.0
     container_name: android-emulator
     ports:
-      - "6080:6080"    # noVNC web interface
-      - "5900:5900"    # VNC
+      - "6080:6080" # noVNC web interface
+      - "5900:5900" # VNC
       - "5556:5554"
       - "5557:5555"
     environment:
@@ -110,12 +100,12 @@ services:
       - APPIUM_HOST=0.0.0.0
       - APPIUM_PORT=4723
     volumes:
-      - ./src/app:/app:ro
+      - ./app:/app:ro
     privileged: true
     networks:
       - appium-grid
     healthcheck:
-      test: ["CMD", "adb", "devices"]
+      test: [ "CMD", "adb", "devices" ]
       interval: 30s
       timeout: 10s
       retries: 10

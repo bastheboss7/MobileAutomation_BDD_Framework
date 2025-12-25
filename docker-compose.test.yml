@@ -40,15 +40,11 @@ services:
       - APPIUM_PORT=4723
       - RELAXED_SECURITY=true
     volumes:
-      - ./src/app:/app:ro
+      - ./app:/app:ro
     networks:
       - appium-grid
     command: >
-      appium
-      --address 0.0.0.0
-      --port 4723
-      --relaxed-security
-      --allow-insecure chromedriver_autodownload
+      appium --address 0.0.0.0 --port 4723 --relaxed-security --allow-insecure chromedriver_autodownload
 
   # ============================================================================
   # Android Emulator
@@ -65,7 +61,7 @@ services:
     networks:
       - appium-grid
     healthcheck:
-      test: ["CMD", "adb", "devices"]
+      test: [ "CMD", "adb", "devices" ]
       interval: 30s
       timeout: 10s
       retries: 10

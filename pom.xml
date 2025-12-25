@@ -1,6 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>com.test.baskar</groupId>
@@ -112,6 +110,20 @@
 			<artifactId>logback-classic</artifactId>
 			<version>${logback.version}</version>
 		</dependency>
+		
+		<!-- JSON Processing for BrowserStack API -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+			<version>2.16.1</version>
+		</dependency>
+		
+		<dependency>
+      <groupId>com.browserstack</groupId>
+      <artifactId>browserstack-java-sdk</artifactId>
+      <version>LATEST</version>
+      <scope>compile</scope>
+    </dependency>
 	</dependencies>
 
 	<build>
@@ -144,7 +156,7 @@
 				<artifactId>maven-surefire-plugin</artifactId>
 				<version>${maven-surefire-plugin.version}</version>
 				<configuration>
-					<testFailureIgnore>false</testFailureIgnore>
+					<testFailureIgnore>false</testFailureIgnore><argLine>-javaagent:"${com.browserstack:browserstack-java-sdk:jar}"</argLine>
 					<includes>
 						<!-- New structure -->
 						<include>**/runners/*Runner.java</include>
@@ -157,6 +169,101 @@
 					</systemPropertyVariables>
 				</configuration>
 			</plugin>
+			<plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>3.3.0</version>
+        <executions>
+          <execution>
+            <id>getClasspathFilenames</id>
+            <goals>
+              <goal>properties</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
 		</plugins>
 	</build>
+
+	<!-- ============================================================================ -->
+	<!-- Maven Profiles for BrowserStack Testing -->
+	<!-- ============================================================================ -->
+	<profiles>
+		<!-- BrowserStack Profile: Single Test -->
+		<profile>
+			<id>sample-test</id>
+			<activation>
+				<activeByDefault>false</activeByDefault>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<configuration>
+							<suiteXmlFiles>
+								<suiteXmlFile>testngParallel.xml</suiteXmlFile>
+							</suiteXmlFiles>
+							<systemPropertyVariables>
+								<platform>android</platform>
+								<env>local</env>
+							</systemPropertyVariables>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+
+		<!-- BrowserStack Profile: Local Test -->
+		<profile>
+			<id>sample-local-test</id>
+			<activation>
+				<activeByDefault>false</activeByDefault>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<configuration>
+							<suiteXmlFiles>
+								<suiteXmlFile>testngParallel.xml</suiteXmlFile>
+							</suiteXmlFiles>
+							<systemPropertyVariables>
+								<platform>android</platform>
+								<env>local</env>
+								<browserstack.local>true</browserstack.local>
+							</systemPropertyVariables>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+
+		<!-- BrowserStack Profile: Parallel Test -->
+		<profile>
+			<id>sample-parallel-test</id>
+			<activation>
+				<activeByDefault>false</activeByDefault>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<configuration>
+							<suiteXmlFiles>
+								<suiteXmlFile>testngParallel.xml</suiteXmlFile>
+							</suiteXmlFiles>
+							<parallel>methods</parallel>
+							<threadCount>3</threadCount>
+							<systemPropertyVariables>
+								<platform>android</platform>
+								<env>local</env>
+							</systemPropertyVariables>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 </project>

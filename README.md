@@ -496,6 +496,39 @@ mvn test -Dparallel=methods -DthreadCount=4 -Dplatform=android
 | **Template Method** | `BasePage` defines common actions | DRY, consistent element interactions |
 | **Strategy Pattern** | Element-based assertions with fallbacks | Reliable mobile element detection |
 
+## Architectural Traceability & Rationale ##
+
+Why This Design?
+Our framework is architected for scalability, maintainability, and parallel execution. Key design choices include:
+
+Layered Traceability:
+Each test scenario flows from .feature files (business intent), through step definitions (glue), into screen/page objects (UI abstraction), and down to base classes and utilities (engine). This clear separation ensures traceability from business requirements to code.
+
+OOP Principles:
+
+Abstract BasePage: Enforces a contract for all screens, sharing common actions while preventing direct instantiation.
+Protected Methods: Restrict low-level actions to subclasses, encapsulating driver logic and reducing accidental misuse.
+Final Utility Classes: (e.g., WdioLocators) Prevent inheritance and instantiation, ensuring a single source of truth for constants and locators.
+Composition Over Inheritance:
+Utility classes (e.g., ElementActions, WaitUtils) are injected into page objects, promoting loose coupling and easier testing.
+
+Thread Safety:
+DriverManager uses ThreadLocal to isolate driver instances, enabling safe parallel test execution and maximizing resource utilization.
+
+Design Patterns:
+
+Singleton: For configuration management, ensuring consistent settings.
+Factory: For driver creation, supporting multiple platforms.
+Page Object Manager: Centralizes and reuses page objects, reducing duplication.
+Architectural Intelligence
+This design:
+
+Supports parallelism (via ThreadLocal drivers).
+Enforces encapsulation (via access modifiers and abstract classes).
+Promotes reusability and maintainability (via composition and design patterns).
+Enables clear traceability from business logic to engine code, making debugging and onboarding easier.
+
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -712,7 +745,7 @@ HUB=http://127.0.0.1:4723
 iosDeviceName=iPhone 15 Pro
 iosUdid=<simulator-udid>
 iosPlatformVersion=17.0
-iosAppPath=src/app/wdiodemoapp.app
+iosAppPath=app/wdiodemoapp.app
 bundleId=org.reactjs.native.example.wdiodemoapp
 
 # Android Configuration
@@ -721,7 +754,7 @@ udid=emulator-5554
 platformVersion=13
 appPackage=com.wdiodemoapp
 appActivity=com.wdiodemoapp.MainActivity
-apkPath=src/app/android.wdio.native.app.v1.0.8.apk
+apkPath=app/android.wdio.native.app.v1.0.8.apk
 
 # Timeouts (seconds)
 implicitWait=30

@@ -43,4 +43,4 @@ geckodriver
 drivers/
 
 # Mobile app binaries
-src/app/
+app/

@@ -24,6 +24,7 @@ public class ConfigManager {
     private static final Logger logger = LoggerFactory.getLogger(ConfigManager.class);
     private static final Properties properties = new Properties();
     private static final Properties objectProperties = new Properties();
+    private static final Map<String, Object> rawYamlData = new java.util.HashMap<>();  // Store raw YAML for complex structures
     private static boolean initialized = false;
     private static String currentEnvironment;
 
@@ -107,6 +108,7 @@ public class ConfigManager {
 
     /**
      * Load configuration from YAML and export to System properties.
+     * Filters out app-path keys to prevent SDK auto-injection into bstack:options.
      */
     private static void loadYamlConfig(String path) throws IOException {
         logger.info("Parsing YAML: {}", path);
@@ -119,11 +121,25 @@ public class ConfigManager {
         }
 
         logger.info("Loaded YAML with {} top-level keys", yamlMap.size());
-        // Export top-level keys
+        
+        // Store complete raw YAML for complex structures (platforms, etc.)
+        rawYamlData.putAll(yamlMap);
+        
+        // Keys that should NOT be exported to system properties (SDK auto-injects these)
+        java.util.Set<String> excludeKeys = new java.util.HashSet<>();
+        excludeKeys.add("androidAppPath");
+        excludeKeys.add("iosAppPath");
+        excludeKeys.add("appPath");
+        excludeKeys.add("app");
+        excludeKeys.add("platforms");  // Platform list should only be accessed via getRawValue()
+        
+        // Export top-level keys (excluding SDK-sensitive ones)
         yamlMap.forEach((k, v) -> {
-            if (v != null && !(v instanceof Map)) {
-                System.setProperty(k, v.toString());
-                properties.setProperty(k, v.toString());
+            if (v != null && !(v instanceof Map) && !(v instanceof java.util.List)) {
+                if (!excludeKeys.contains(k)) {
+                    System.setProperty(k, v.toString());
+                    properties.setProperty(k, v.toString());
+                }
             }
         });
 
@@ -233,6 +249,18 @@ public class ConfigManager {
         return defaultValue;
     }
 
+    /**
+     * Get raw YAML value (for complex structures like lists or maps).
+     * Useful for accessing nested YAML structures like 'platforms'.
+     * 
+     * @param key Key to retrieve
+     * @return Raw object or null if not found
+     */
+    public static Object getRawValue(String key) {
+        ensureInitialized();
+        return rawYamlData.get(key);
+    }
+
     private static void ensureInitialized() {
         if (!initialized) {
             init();
@@ -246,6 +274,7 @@ public class ConfigManager {
         initialized = false;
         properties.clear();
         objectProperties.clear();
+        rawYamlData.clear();
         init();
     }
 }

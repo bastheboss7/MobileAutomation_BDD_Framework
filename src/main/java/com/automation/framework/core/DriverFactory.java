@@ -85,18 +85,30 @@ public class DriverFactory {
         boolean isBSDK = System.getProperty("browserstack.sdk") != null || System.getenv("BROWSERSTACK_SDK") != null
                 || new java.io.File("browserstack.yml").exists();
 
-        // SDK Mode or Standard Mode on BrowserStack: Ensure app is uploaded and URL is
-        // valid
+        // BrowserStack Mode: Upload app and add device capabilities
         if (isBrowserStack) {
             String appPath = ConfigManager.get("androidAppPath");
-            if (appPath == null)
-                appPath = ConfigManager.get("appPath");
+            if (appPath == null) appPath = ConfigManager.get("appPath");
+            // Fallback to raw YAML values if properties were not exported
+            if (appPath == null) {
+                Object raw = ConfigManager.getRawValue("androidAppPath");
+                if (raw == null) raw = ConfigManager.getRawValue("appPath");
+                if (raw == null) raw = ConfigManager.getRawValue("app");
+                if (raw != null) appPath = raw.toString();
+            }
+            if (appPath == null || appPath.isBlank()) {
+                throw new RuntimeException("App upload failed: App path missing in config.");
+            }
 
             try {
                 Map<String, String> credentials = BrowserStackAppUploader.getBrowserStackCredentials();
+
                 String bsAppUrl = BrowserStackAppUploader.uploadApp(appPath, credentials.get("username"),
                         credentials.get("accessKey"));
+
+                // Use the uploaded bs:// URL to avoid SDK override issues
                 options.setApp(bsAppUrl);
+
                 // Also set system property for SDK if active
                 if (isBSDK) {
                     System.setProperty("browserstack.app", bsAppUrl);
@@ -107,6 +119,24 @@ public class DriverFactory {
                 throw new RuntimeException("App upload failed: " + e.getMessage());
             }
 
+            // Get device info from device pool (required for BrowserStack capabilities)
+            String deviceName = DevicePool.getDeviceName();
+            String platformVersion = DevicePool.getPlatformVersion();
+            
+            if (deviceName == null || deviceName.isEmpty()) {
+                throw new RuntimeException("deviceName is required for BrowserStack execution. Check device pool configuration.");
+            }
+            if (platformVersion == null || platformVersion.isEmpty()) {
+                logger.warn("platformVersion is empty, using 'default'");
+                platformVersion = "default";
+            }
+
+            // Add BrowserStack-specific capabilities (deviceName, osVersion, etc.)
+            BrowserStackCapabilityBuilder.addBrowserStackCapabilities(options, deviceName, platformVersion);
+            
+            // Log execution context
+            BrowserStackCapabilityBuilder.logBrowserStackExecution(deviceName, platformVersion, hubUrl);
+
             // Always use authorized hub URL for reliability
             String authorizedHubUrl = BrowserStackCapabilityBuilder.getAuthorizedHubUrl(hubUrl);
             logger.info("Creating AndroidDriver on BrowserStack with authorized URL and options: {}", options.asMap());
@@ -115,7 +145,7 @@ public class DriverFactory {
             return driver;
         }
 
-        // 2. Standard Mode: Full framework control (Local execution)
+        // Local Mode: Full framework control (Local execution)
         String deviceName = DevicePool.getDeviceName();
         String platformVersion = DevicePool.getPlatformVersion();
         options.setDeviceName(deviceName);

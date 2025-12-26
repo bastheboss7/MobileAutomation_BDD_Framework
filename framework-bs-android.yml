@@ -1,5 +1,7 @@
 # Framework Options for BrowserStack Android
-# Note: app path is sourced from browserstack-android.yml under the 'app' key
+# Holds framework-only settings to avoid SDK capability pollution.
+# App path is defined here (not in SDK config) for Standard Mode uploads.
+androidAppPath: ./app/browserstack/android/android.wdio.native.app.v1.0.8.apk
 hubUrl: https://hub-cloud.browserstack.com/wd/hub
 appPackage: com.wdiodemoapp
 appActivity: com.wdiodemoapp.MainActivity

@@ -64,35 +64,63 @@ public class DevicePool {
 
     /**
      * Initialize device pools from configuration.
-     * Reads device.{index}.name and device.{index}.platformVersion for Android.
-     * Reads iosDevice.{index}.name and iosDevice.{index}.platformVersion for iOS.
+     * For BrowserStack: Reads from 'platforms' list in browserstack YAML.
+     * For Local: Reads device.{index}.name and device.{index}.platformVersion for Android.
      */
     public static synchronized void initialize() {
         if (initialized) {
             return;
         }
 
+        String env = ConfigManager.getEnvironment();
+        boolean isBrowserStackMode = env != null && env.contains("bs");
+
         // Initialize Android device pool
         devicePool.clear();
-        int index = 1;
 
-        while (true) {
-            String deviceName = ConfigManager.get("device." + index + ".name");
-            String platformVersion = ConfigManager.get("device." + index + ".platformVersion");
-
-            if (deviceName == null || platformVersion == null) {
-                break; // No more devices in pool
+        if (isBrowserStackMode) {
+            // BrowserStack mode: Load from platforms list in YAML
+            logger.info("Initializing device pool from BrowserStack platforms configuration...");
+            List<java.util.Map<String, Object>> platforms = (List<java.util.Map<String, Object>>) ConfigManager.getRawValue("platforms");
+            
+            if (platforms != null && !platforms.isEmpty()) {
+                int index = 1;
+                for (java.util.Map<String, Object> platform : platforms) {
+                    String deviceName = (String) platform.get("deviceName");
+                    Object osVersionObj = platform.get("osVersion");
+                    String osVersion = osVersionObj != null ? osVersionObj.toString() : "unknown";
+                    
+                    if (deviceName != null && !deviceName.isEmpty()) {
+                        DeviceConfig device = new DeviceConfig(deviceName, osVersion, index);
+                        devicePool.add(device);
+                        logger.info("Added to BrowserStack device pool: {}", device);
+                        index++;
+                    }
+                }
+            } else {
+                logger.warn("No platforms found in BrowserStack configuration. Device pool will be empty.");
             }
+        } else {
+            // Local mode: Load from properties
+            int index = 1;
+            while (true) {
+                String deviceName = ConfigManager.get("device." + index + ".name");
+                String platformVersion = ConfigManager.get("device." + index + ".platformVersion");
 
-            DeviceConfig device = new DeviceConfig(deviceName, platformVersion, index);
-            devicePool.add(device);
-            logger.info("Added to Android device pool: {}", device);
-            index++;
+                if (deviceName == null || platformVersion == null) {
+                    break; // No more devices in pool
+                }
+
+                DeviceConfig device = new DeviceConfig(deviceName, platformVersion, index);
+                devicePool.add(device);
+                logger.info("Added to Android device pool: {}", device);
+                index++;
+            }
         }
 
         // Initialize iOS device pool
         iosDevicePool.clear();
-        index = 1;
+        int index = 1;
 
         while (true) {
             String deviceName = ConfigManager.get("iosDevice." + index + ".name");

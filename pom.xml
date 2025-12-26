@@ -199,19 +199,23 @@
 	<!-- Maven Profiles for BrowserStack Testing -->
 	<!-- ============================================================================ -->
 	<profiles>
-		<!-- BrowserStack SDK Agent Configuration -->
+		<!-- BrowserStack Profile: Auto-enables SDK for enhanced reporting -->
 		<profile>
 			<id>browserstack</id>
 			<activation>
 				<activeByDefault>false</activeByDefault>
 			</activation>
+			<properties>
+				<!-- Auto-enable SDK for BrowserStack runs (unlock reporting, debugging, analytics) -->
+				<bs.sdk.agent>-javaagent:${com.browserstack:browserstack-java-sdk:jar}</bs.sdk.agent>
+			</properties>
 			<build>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-surefire-plugin</artifactId>
 						<configuration>
-							<!-- Gate BrowserStack SDK agent via bs.sdk.agent property -->
+							<!-- BrowserStack SDK agent enabled by default in this profile -->
 							<argLine>${bs.sdk.agent}</argLine>
 							<systemPropertyVariables>
 								<browserstack.platforms>${platform}</browserstack.platforms>
@@ -223,17 +227,17 @@
 			</build>
 		</profile>
 
-		<!-- Enable BrowserStack SDK agent when -DsdkAgent=true -->
+		<!-- Disable BrowserStack SDK agent when -DsdkAgent=false (opt-out) -->
 		<profile>
-			<id>enable-sdk-agent</id>
+			<id>disable-sdk-agent</id>
 			<activation>
 				<property>
 					<name>sdkAgent</name>
-					<value>true</value>
+					<value>false</value>
 				</property>
 			</activation>
 			<properties>
-				<bs.sdk.agent>-javaagent:${com.browserstack:browserstack-java-sdk:jar}</bs.sdk.agent>
+				<bs.sdk.agent></bs.sdk.agent>
 			</properties>
 		</profile>
 

@@ -1,6 +1,4 @@
 # Framework Options for BrowserStack Android
-browserstack.user: aishwaryalakshmi_flVCjb
-browserstack.key: RsRLTRVEKShpDovu5sgb
 hubUrl: https://hub-cloud.browserstack.com/wd/hub
 appPackage: com.wdiodemoapp
 appActivity: com.wdiodemoapp.MainActivity

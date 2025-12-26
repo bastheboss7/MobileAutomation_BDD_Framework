@@ -1,0 +1,12 @@
+# Framework Options for BrowserStack iOS
+browserstack.user: aishwaryalakshmi_flVCjb
+browserstack.key: RsRLTRVEKShpDovu5sgb
+hubUrl: https://hub-cloud.browserstack.com/wd/hub
+bundleId: com.browserstack.SampleApp
+iosAppPath: /Users/baskarp/MobileAutomation_BDD_Framework/app/browserstack/ios/BStackSampleApp.ipa
+appPath: /Users/baskarp/MobileAutomation_BDD_Framework/app/browserstack/ios/BStackSampleApp.ipa
+implicitWait: 15
+explicitWait: 45
+pageLoadTimeout: 90
+retry.maxCount: 0
+screenshot.on.failure: true

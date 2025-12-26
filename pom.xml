@@ -31,6 +31,9 @@
 		<maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
 		<maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
 		<maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
+
+		<!-- BrowserStack SDK agent gating (empty by default; set via profile or -DsdkAgent=true) -->
+		<bs.sdk.agent></bs.sdk.agent>
 	</properties>
 
 	<dependencies>
@@ -111,19 +114,26 @@
 			<version>${logback.version}</version>
 		</dependency>
 		
-		<!-- JSON Processing for BrowserStack API -->
+		<!-- JSON/YAML Processing for BrowserStack Config -->
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
 			<version>2.16.1</version>
 		</dependency>
-		
 		<dependency>
-      <groupId>com.browserstack</groupId>
-      <artifactId>browserstack-java-sdk</artifactId>
-      <version>LATEST</version>
-      <scope>compile</scope>
-    </dependency>
+			<groupId>com.fasterxml.jackson.dataformat</groupId>
+			<artifactId>jackson-dataformat-yaml</artifactId>
+			<version>2.16.1</version>
+		</dependency>
+		
+		<!-- BrowserStack Java SDK -->
+		<dependency>
+			<groupId>com.browserstack</groupId>
+			<artifactId>browserstack-java-sdk</artifactId>
+			<version>LATEST</version>
+			<scope>compile</scope>
+		</dependency>
+		
 	</dependencies>
 
 	<build>
@@ -156,7 +166,7 @@
 				<artifactId>maven-surefire-plugin</artifactId>
 				<version>${maven-surefire-plugin.version}</version>
 				<configuration>
-					<testFailureIgnore>false</testFailureIgnore><argLine>-javaagent:"${com.browserstack:browserstack-java-sdk:jar}"</argLine>
+					<testFailureIgnore>false</testFailureIgnore>
 					<includes>
 						<!-- New structure -->
 						<include>**/runners/*Runner.java</include>
@@ -167,6 +177,7 @@
 						<env>${env}</env>
 						<platform>${platform}</platform>
 					</systemPropertyVariables>
+
 				</configuration>
 			</plugin>
 			<plugin>
@@ -188,6 +199,44 @@
 	<!-- Maven Profiles for BrowserStack Testing -->
 	<!-- ============================================================================ -->
 	<profiles>
+		<!-- BrowserStack SDK Agent Configuration -->
+		<profile>
+			<id>browserstack</id>
+			<activation>
+				<activeByDefault>false</activeByDefault>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<configuration>
+							<!-- Gate BrowserStack SDK agent via bs.sdk.agent property -->
+							<argLine>${bs.sdk.agent}</argLine>
+							<systemPropertyVariables>
+								<browserstack.platforms>${platform}</browserstack.platforms>
+								<browserstack.config>browserstack-${platform}.yml</browserstack.config>
+							</systemPropertyVariables>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+
+		<!-- Enable BrowserStack SDK agent when -DsdkAgent=true -->
+		<profile>
+			<id>enable-sdk-agent</id>
+			<activation>
+				<property>
+					<name>sdkAgent</name>
+					<value>true</value>
+				</property>
+			</activation>
+			<properties>
+				<bs.sdk.agent>-javaagent:${com.browserstack:browserstack-java-sdk:jar}</bs.sdk.agent>
+			</properties>
+		</profile>
+
 		<!-- BrowserStack Profile: Single Test -->
 		<profile>
 			<id>sample-test</id>
@@ -259,6 +308,61 @@
 							<systemPropertyVariables>
 								<platform>android</platform>
 								<env>local</env>
+							</systemPropertyVariables>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	<!-- Android Profile -->
+		<profile>
+			<id>android</id>
+			<activation>
+				<activeByDefault>false</activeByDefault>
+			</activation>
+			<properties>
+				<platform>android</platform>
+				<cucumber.filter.tags>@androidOnly</cucumber.filter.tags>
+			</properties>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<configuration>
+							<suiteXmlFiles>
+								<suiteXmlFile>testngParallel.xml</suiteXmlFile>
+							</suiteXmlFiles>
+							<systemPropertyVariables>
+								<cucumber.filter.tags>${cucumber.filter.tags}</cucumber.filter.tags>
+							</systemPropertyVariables>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+
+		<!-- iOS Profile -->
+		<profile>
+			<id>ios</id>
+			<activation>
+				<activeByDefault>false</activeByDefault>
+			</activation>
+			<properties>
+				<platform>ios</platform>
+				<cucumber.filter.tags>@iosOnly</cucumber.filter.tags>
+			</properties>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<configuration>
+							<suiteXmlFiles>
+								<suiteXmlFile>testngParallel.xml</suiteXmlFile>
+							</suiteXmlFiles>
+							<systemPropertyVariables>
+								<cucumber.filter.tags>${cucumber.filter.tags}</cucumber.filter.tags>
 							</systemPropertyVariables>
 						</configuration>
 					</plugin>

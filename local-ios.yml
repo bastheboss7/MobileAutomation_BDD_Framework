@@ -1,0 +1,17 @@
+# Local iOS Configuration
+iosAppPath: ./app/local/ios/wdiodemoapp.app
+appPath: ./app/local/ios/wdiodemoapp.app
+iosPlatformVersion: 17.0
+iosDeviceName: iPhone 16e
+iosUdid: 473154E6-C7B8-494F-A943-CAE9B3033BCC
+
+# Framework Options
+frameworkOptions:
+  bundleId: com.browserstack.SampleApp
+  installApp: true
+  implicitWait: 10
+  explicitWait: 30
+  pageLoadTimeout: 60
+  retry.maxCount: 2
+  screenshot.on.failure: true
+  HUB: http://127.0.0.1:4723

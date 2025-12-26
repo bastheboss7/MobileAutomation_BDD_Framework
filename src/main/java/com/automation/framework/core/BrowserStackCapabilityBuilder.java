@@ -35,6 +35,38 @@ public class BrowserStackCapabilityBuilder {
     }
 
     /**
+     * Formats the hub URL to include credentials for BrowserStack execution.
+     * 
+     * @param hubUrl Original hub URL
+     * @return Hub URL with username and access key embedded
+     */
+    public static String getAuthorizedHubUrl(String hubUrl) {
+        if (!isBrowserStackHub(hubUrl)) {
+            return hubUrl;
+        }
+
+        Map<String, String> credentials = BrowserStackAppUploader.getBrowserStackCredentials();
+        String username = credentials.get("username");
+        String accessKey = credentials.get("accessKey");
+
+        if (username == null || accessKey == null) {
+            logger.warn("BrowserStack credentials missing. Using unauthorized URL.");
+            return hubUrl;
+        }
+
+        // Handle case where URL might already have credentials
+        if (hubUrl.contains("@")) {
+            return hubUrl;
+        }
+
+        // Format: https://username:accessKey@hub-cloud.browserstack.com/wd/hub
+        String protocol = hubUrl.contains("://") ? hubUrl.split("://")[0] : "https";
+        String hostPath = hubUrl.contains("://") ? hubUrl.split("://")[1] : hubUrl;
+
+        return String.format("%s://%s:%s@%s", protocol, username, accessKey, hostPath);
+    }
+
+    /**
      * Adds BrowserStack-specific capabilities for Android driver.
      * This method should be called when executing tests on BrowserStack cloud.
      * 

@@ -14,10 +14,10 @@ import java.lang.reflect.Method;
  * @version 2.0.0
  */
 public class RetryTransformer implements IAnnotationTransformer {
-    
+
     @Override
-    public void transform(ITestAnnotation annotation, Class testClass, 
-                         Constructor testConstructor, Method testMethod) {
+    public void transform(ITestAnnotation annotation, Class testClass,
+            Constructor testConstructor, Method testMethod) {
         // Apply RetryAnalyzer to all test methods
         annotation.setRetryAnalyzer(RetryAnalyzer.class);
     }

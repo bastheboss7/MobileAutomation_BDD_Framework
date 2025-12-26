@@ -1,0 +1,13 @@
+# Framework Options for BrowserStack Android
+browserstack.user: aishwaryalakshmi_flVCjb
+browserstack.key: RsRLTRVEKShpDovu5sgb
+hubUrl: https://hub-cloud.browserstack.com/wd/hub
+appPackage: com.wdiodemoapp
+appActivity: com.wdiodemoapp.MainActivity
+androidAppPath: /Users/baskarp/MobileAutomation_BDD_Framework/app/browserstack/android/android.wdio.native.app.v1.0.8.apk
+appPath: /Users/baskarp/MobileAutomation_BDD_Framework/app/browserstack/android/android.wdio.native.app.v1.0.8.apk
+implicitWait: 15
+explicitWait: 45
+pageLoadTimeout: 90
+retry.maxCount: 0
+screenshot.on.failure: true

@@ -14,17 +14,24 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
  * @version 1.0.0
  */
 public class HomeScreen extends BasePage {
-    
+
     // ==================== Navigation Methods ====================
-    
+
     /**
      * Navigate to the Login screen via bottom navigation.
+     * Uses robust click with fallback to ensure navigation on different
+     * devices/Appium versions.
      */
     public void navigateToLogin() {
-        clickByAccessibility(WdioLocators.NAV_LOGIN);
+        try {
+            clickByAccessibility(WdioLocators.NAV_LOGIN);
+        } catch (Exception e) {
+            logger.warn("Click by accessibility failed for Login tab, trying XPath fallback...");
+            clickByXpath(WdioLocators.XPATH_NAV_LOGIN);
+        }
         logger.info("Navigated to Login screen");
     }
-    
+
     /**
      * Navigate to the Home screen via bottom navigation.
      */
@@ -32,7 +39,7 @@ public class HomeScreen extends BasePage {
         clickByAccessibility(WdioLocators.NAV_HOME);
         logger.info("Navigated to Home screen");
     }
-    
+
     /**
      * Navigate to the Webview screen via bottom navigation.
      */
@@ -40,7 +47,7 @@ public class HomeScreen extends BasePage {
         clickByAccessibility(WdioLocators.NAV_WEBVIEW);
         logger.info("Navigated to Webview screen");
     }
-    
+
     /**
      * Navigate to the Forms screen via bottom navigation.
      */
@@ -48,7 +55,7 @@ public class HomeScreen extends BasePage {
         clickByAccessibility(WdioLocators.NAV_FORMS);
         logger.info("Navigated to Forms screen");
     }
-    
+
     /**
      * Navigate to the Swipe screen via bottom navigation.
      */
@@ -56,7 +63,7 @@ public class HomeScreen extends BasePage {
         clickByAccessibility(WdioLocators.NAV_SWIPE);
         logger.info("Navigated to Swipe screen");
     }
-    
+
     /**
      * Navigate to the Drag screen via bottom navigation.
      */
@@ -64,11 +71,12 @@ public class HomeScreen extends BasePage {
         clickByAccessibility(WdioLocators.NAV_DRAG);
         logger.info("Navigated to Drag screen");
     }
-    
+
     // ==================== Verification Methods ====================
-    
+
     /**
      * Check if Home screen is displayed.
+     * 
      * @return true if on home screen
      */
     public boolean isHomeScreenDisplayed() {
@@ -80,13 +88,14 @@ public class HomeScreen extends BasePage {
             return false;
         }
     }
-    
+
     /**
      * Check if bottom navigation is visible.
+     * 
      * @return true if navigation tabs are visible
      */
     public boolean isNavigationVisible() {
         return isDisplayedByAccessibility(WdioLocators.NAV_HOME) &&
-               isDisplayedByAccessibility(WdioLocators.NAV_LOGIN);
+                isDisplayedByAccessibility(WdioLocators.NAV_LOGIN);
     }
 }

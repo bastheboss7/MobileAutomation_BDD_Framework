@@ -16,7 +16,7 @@ import org.testng.annotations.Test;
  * @author Baskar
  * @version 4.0.0
  */
-@CucumberOptions(tags = "@Negative", features = "src/test/resources/features", glue = "stepdefinitions", plugin = {
+@CucumberOptions(tags = "@Login and not @Skip", features = "src/test/resources/features", glue = "stepdefinitions", plugin = {
         "summary",
         "pretty",
         "html:target/reports/cucumber-report/cucumber-pretty/",
@@ -36,7 +36,7 @@ public class TestNgRunner {
         testNGCucumberRunner.runScenario(pickleWrapper.getPickle());
     }
 
-    @DataProvider(name = "scenarios", parallel = false)
+    @DataProvider(name = "scenarios", parallel = true)
     public Object[][] features() {
         return testNGCucumberRunner.provideScenarios();
     }

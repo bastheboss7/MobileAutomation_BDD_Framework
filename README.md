@@ -643,3 +643,34 @@ mvn clean test -Pbrowserstack -Dplatform=ios -Denv=local.bs -DsdkAgent=true -Dcu
 - **[BROWSERSTACK_INVALID_APP_URL]**: Confirm `app` capability shows `bs://...`. The framework uploads the local app path via `BrowserStackAppUploader` and injects the returned `bs://` URL.
 - **SDK overrides**: The SDK `-javaagent` is disabled by default. If enabled via `-DsdkAgent=true`, ensure no `hubUrl` exists in `browserstack-android.yml` to avoid capability pollution.
 
+## **Standard Operating Procedures (SOP)**
+
+### **Local Android Emulator SOP**
+- **Prerequisites:** Android SDK + AVD (e.g., `Pixel_6_API_33`), Appium 2.x, `uiautomator2` driver.
+- **Start Emulator:** [scripts/start-emulator.sh](scripts/start-emulator.sh).
+- **Start Appium:** [scripts/start-appium.sh](scripts/start-appium.sh) on `4723`.
+- **Run Tests:** Uses [local-android.yml](local-android.yml).
+- **Command:**
+```bash
+./scripts/start-emulator.sh Pixel_6_API_33
+./scripts/start-appium.sh 4723
+mvn clean test -Pandroid -Denv=local -Dcucumber.filter.tags="@Login and not @Skip"
+```
+- **Verify:** `adb devices` lists `emulator-5554`; tests execute locally.
+- **Troubleshoot:** Appium not found → install; cannot connect → ensure Appium running or update `HUB` in [local-android.yml](local-android.yml).
+
+### **BrowserStack Android SOP**
+- **Prerequisites:** BrowserStack account; credentials via env vars (`BROWSERSTACK_USERNAME`, `BROWSERSTACK_ACCESS_KEY`) or [framework-bs-android.yml](framework-bs-android.yml).
+- **Config Load:** [browserstack-android.yml](browserstack-android.yml) + [framework-bs-android.yml](framework-bs-android.yml) when `env` contains `bs`.
+- **Execution Mode:** Standard Mode (explicit upload → `bs://` + authorized hub).
+- **Run Tests:**
+```bash
+mvn clean test -Pbrowserstack -Dplatform=android -Denv=local.bs -Dcucumber.filter.tags="@androidOnly"
+```
+- **Verify:** Capabilities include `app=bs://...` and `https://<user>:<key>@hub-cloud.browserstack.com/wd/hub`; BrowserStack dashboard shows completed Android session.
+- **Optional SDK (reporting):**
+```bash
+mvn clean test -Pbrowserstack -Dplatform=android -Denv=local.bs -DsdkAgent=true -Dcucumber.filter.tags="@androidOnly"
+```
+- **Troubleshoot:** Auth errors → check creds; invalid app URL → confirm APK path and `bs://`; avoid `hubUrl` in [browserstack-android.yml](browserstack-android.yml).
+

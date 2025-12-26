@@ -1,9 +1,8 @@
 # Framework Options for BrowserStack Android
+# Note: app path is sourced from browserstack-android.yml under the 'app' key
 hubUrl: https://hub-cloud.browserstack.com/wd/hub
 appPackage: com.wdiodemoapp
 appActivity: com.wdiodemoapp.MainActivity
-androidAppPath: /Users/baskarp/MobileAutomation_BDD_Framework/app/browserstack/android/android.wdio.native.app.v1.0.8.apk
-appPath: /Users/baskarp/MobileAutomation_BDD_Framework/app/browserstack/android/android.wdio.native.app.v1.0.8.apk
 implicitWait: 15
 explicitWait: 45
 pageLoadTimeout: 90

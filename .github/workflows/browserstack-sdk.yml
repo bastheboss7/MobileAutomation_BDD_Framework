@@ -22,9 +22,17 @@ on:
           - ios
           - both
       tags:
-        description: 'Cucumber tags filter (leave empty for platform default)'
+        description: 'Cucumber tags filter'
         required: false
-        default: ''
+        default: 'platform-default'
+        type: choice
+        options:
+          - platform-default
+          - '@androidOnly'
+          - '@iosOnly'
+          - '@smoke'
+          - '@regression'
+          - 'custom'
 
 env:
   JAVA_VERSION: '21'
@@ -94,10 +102,13 @@ jobs:
       - name: Determine Cucumber tags
         id: tags
         run: |
-          if [ -n "${{ github.event.inputs.tags }}" ]; then
-            echo "filter=${{ github.event.inputs.tags }}" >> $GITHUB_OUTPUT
-          else
+          TAG_INPUT="${{ github.event.inputs.tags }}"
+          if [ "$TAG_INPUT" = "platform-default" ] || [ -z "$TAG_INPUT" ]; then
             echo "filter=@androidOnly" >> $GITHUB_OUTPUT
+          elif [ "$TAG_INPUT" = "custom" ]; then
+            echo "filter=" >> $GITHUB_OUTPUT
+          else
+            echo "filter=$TAG_INPUT" >> $GITHUB_OUTPUT
           fi
       
       - name: Run Android SDK Tests
@@ -173,10 +184,13 @@ jobs:
       - name: Determine Cucumber tags
         id: tags
         run: |
-          if [ -n "${{ github.event.inputs.tags }}" ]; then
-            echo "filter=${{ github.event.inputs.tags }}" >> $GITHUB_OUTPUT
-          else
+          TAG_INPUT="${{ github.event.inputs.tags }}"
+          if [ "$TAG_INPUT" = "platform-default" ] || [ -z "$TAG_INPUT" ]; then
             echo "filter=@iosOnly" >> $GITHUB_OUTPUT
+          elif [ "$TAG_INPUT" = "custom" ]; then
+            echo "filter=" >> $GITHUB_OUTPUT
+          else
+            echo "filter=$TAG_INPUT" >> $GITHUB_OUTPUT
           fi
       
       - name: Run iOS SDK Tests

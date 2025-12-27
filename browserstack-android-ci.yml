@@ -1,6 +1,3 @@
-userName: ${BROWSERSTACK_USERNAME}
-accessKey: ${BROWSERSTACK_ACCESS_KEY}
-
 app: bs://02d88594d8c7d0ba4cecde791474bbb7cba23f73  # Uploaded app ID or use custom_id for stable reference
 
 platforms:

@@ -1,6 +1,3 @@
-userName: ${BROWSERSTACK_USERNAME}
-accessKey: ${BROWSERSTACK_ACCESS_KEY}
-
 app: app/browserstack/ios/BStackSampleApp.ipa  # Local path (SDK auto-uploads) or custom_id for stable reference
 
 platforms:

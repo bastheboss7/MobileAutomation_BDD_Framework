@@ -120,7 +120,6 @@ jobs:
             -Pbrowserstack \
             -Dplatform=android \
             -Denv=browserstack \
-            -Dbrowserstack.config=browserstack-android-ci.yml \
             -Dcucumber.filter.tags="${{ steps.tags.outputs.filter }}" \
             --no-transfer-progress \
             -q
@@ -202,7 +201,6 @@ jobs:
             -Pbrowserstack \
             -Dplatform=ios \
             -Denv=browserstack \
-            -Dbrowserstack.config=browserstack-ios-ci.yml \
             -Dcucumber.filter.tags="${{ steps.tags.outputs.filter }}" \
             --no-transfer-progress \
             -q

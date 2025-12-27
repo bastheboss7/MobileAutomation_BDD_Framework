@@ -83,11 +83,18 @@ public class DriverFactory {
         String hubUrl = ConfigManager.get("hubUrl", ConfigManager.get("HUB", "http://127.0.0.1:4723"));
         String env = ConfigManager.getEnvironment();
 
-        // SDK Mode: When targeting BrowserStack, let the SDK handle server and capabilities
+        // BrowserStack Mode: Connect to BrowserStack hub with credentials and SDK-managed capabilities
         if (env != null && (env.toLowerCase().contains("bs") || env.toLowerCase().contains("browserstack"))) {
-            logger.info("SDK Mode (Android) - Creating AndroidDriver without server URL");
-            UiAutomator2Options sdkOptions = new UiAutomator2Options();
-            AppiumDriver driver = new AndroidDriver(sdkOptions);
+            logger.info("BrowserStack Mode (Android) - Connecting to hub-cloud.browserstack.com");
+            String username = System.getenv("BROWSERSTACK_USERNAME");
+            String accessKey = System.getenv("BROWSERSTACK_ACCESS_KEY");
+            if (username == null || accessKey == null) {
+                throw new IllegalStateException("BrowserStack credentials not found. Set BROWSERSTACK_USERNAME and BROWSERSTACK_ACCESS_KEY environment variables.");
+            }
+            String bsHubUrl = "https://" + username + ":" + accessKey + "@hub-cloud.browserstack.com/wd/hub";
+            logger.info("Connecting to BrowserStack hub: {}", bsHubUrl.replaceAll(":.*@", ":***@"));
+            UiAutomator2Options bsOptions = new UiAutomator2Options();
+            AppiumDriver driver = new AndroidDriver(URI.create(bsHubUrl).toURL(), bsOptions);
             driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(ConfigManager.getInt("implicitWait", 30)));
             return driver;
         }
@@ -132,11 +139,18 @@ public class DriverFactory {
         String hubUrl = ConfigManager.get("hubUrl", ConfigManager.get("HUB", "http://127.0.0.1:4723"));
         String env = ConfigManager.getEnvironment();
 
-        // SDK Mode for BrowserStack
+        // BrowserStack Mode: Connect to BrowserStack hub with credentials and SDK-managed capabilities
         if (env != null && (env.toLowerCase().contains("bs") || env.toLowerCase().contains("browserstack"))) {
-            logger.info("SDK Mode (iOS) - Creating IOSDriver without server URL");
-            XCUITestOptions sdkOptions = new XCUITestOptions();
-            AppiumDriver driver = new io.appium.java_client.ios.IOSDriver(sdkOptions);
+            logger.info("BrowserStack Mode (iOS) - Connecting to hub-cloud.browserstack.com");
+            String username = System.getenv("BROWSERSTACK_USERNAME");
+            String accessKey = System.getenv("BROWSERSTACK_ACCESS_KEY");
+            if (username == null || accessKey == null) {
+                throw new IllegalStateException("BrowserStack credentials not found. Set BROWSERSTACK_USERNAME and BROWSERSTACK_ACCESS_KEY environment variables.");
+            }
+            String bsHubUrl = "https://" + username + ":" + accessKey + "@hub-cloud.browserstack.com/wd/hub";
+            logger.info("Connecting to BrowserStack hub: {}", bsHubUrl.replaceAll(":.*@", ":***@"));
+            XCUITestOptions bsOptions = new XCUITestOptions();
+            AppiumDriver driver = new io.appium.java_client.ios.IOSDriver(URI.create(bsHubUrl).toURL(), bsOptions);
             driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(ConfigManager.getInt("implicitWait", 30)));
             return driver;
         }

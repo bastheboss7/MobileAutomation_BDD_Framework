@@ -34,6 +34,9 @@
 
 		<!-- BrowserStack SDK agent gating (empty by default; set via profile or -DsdkAgent=true) -->
 		<bs.sdk.agent></bs.sdk.agent>
+
+		<!-- BrowserStack SDK version (used by dependency and agent argLine) -->
+		<browserstack.sdk.version>1.27.0</browserstack.sdk.version>
 	</properties>
 
 	<dependencies>
@@ -130,7 +133,7 @@
 		<dependency>
 			<groupId>com.browserstack</groupId>
 			<artifactId>browserstack-java-sdk</artifactId>
-			<version>1.27.0</version>
+			<version>${browserstack.sdk.version}</version>
 			<scope>compile</scope>
 		</dependency>
 		
@@ -204,7 +207,7 @@
 			</activation>
 			<properties>
 				<!-- Auto-enable SDK for BrowserStack runs (unlock reporting, debugging, analytics) -->
-				<bs.sdk.agent>-javaagent:${com.browserstack:browserstack-java-sdk:jar}</bs.sdk.agent>
+				<bs.sdk.agent>-javaagent:${settings.localRepository}/com/browserstack/browserstack-java-sdk/${browserstack.sdk.version}/browserstack-java-sdk-${browserstack.sdk.version}.jar</bs.sdk.agent>
 			</properties>
 			<build>
 				<plugins>

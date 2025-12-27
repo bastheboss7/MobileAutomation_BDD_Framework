@@ -43,90 +43,116 @@ mvn clean test \
 │   └── com/automation/framework/
 │       ├── pages/
 │       │   ├── BasePage.java               # Base class with waits/helpers
-### Running Parallel Tests
-
-```bash
-# Enable parallel execution (suite controls parallelism)
-mvn clean test \
-    -DsuiteXmlFile=testngSuite.xml \
-    -Dplatform=android \
-    -Dbrowserstack.config=browserstack-android.yml \
-    -Dcucumber.filter.tags="@androidOnly"
+│       │   ├── HomeScreen.java             # Home screen POM
+│       │   └── LoginScreen.java            # Login screen POM
+│       ├── driver/
+│       │   ├── DriverFactory.java          # Creates AppiumDriver instances
+│       │   └── DriverManager.java          # ThreadLocal driver isolation
+│       ├── config/
+│       │   └── ConfigManager.java          # YAML config loader
+│       └── utils/
+│           ├── ElementActions.java         # Common element interactions
+│           └── WaitUtils.java              # Explicit waits
+├── test/java/
+│   ├── runner/
+│   │   └── TestNgRunner.java              # Cucumber + TestNG runner
+│   ├── stepdefinitions/
+│   │   └── WdioLoginSteps.java            # Step implementations
+│   ├── listeners/
+│   │   ├── ExtentReportListener.java      # Extent Reports integration
+│   │   └── ExtentReportManager.java       # ThreadLocal report isolation
+│   └── hooks/
+│       └── Hooks.java                      # @Before/@After scenario hooks
+├── test/resources/
+│   └── features/
+│       ├── BStackSample.feature           # BrowserStack test scenarios
+│       └── wdioLogin.feature              # WDIO login test scenarios
+├── pom.xml                                 # Maven dependencies & configuration
+├── testngSuite.xml                         # TestNG suite (parallel execution)
+├── browserstack-android.yml                # BrowserStack Android config
+├── browserstack-ios.yml                    # BrowserStack iOS config
+├── browserstack-android-ci.yml             # BrowserStack Android CI config
+└── browserstack-ios-ci.yml                 # BrowserStack iOS CI config
 ```
 
-If you maintain a parallel TestNG suite, ensure the file is `testngSuite.xml` and includes your desired `parallel`/`thread-count` settings.
+**Note:** Parallel execution is configured in [testngSuite.xml](testngSuite.xml) with `parallel="methods"` and `thread-count="N"`. All test commands above will automatically use this parallel configuration.
 
 ## 🧵 Thread Safety & Parallel Execution
 
 ### Overview
-│   │  testngSuite.xml: parallel="methods" thread-count="N"                   │  │
-│   └──────────────────────────────────────────────────────────────────────────────┘  │
-│                                    │                                                 │
-│                    ┌───────────────┼───────────────┐                                │
-│                    ▼               ▼               ▼                                │
-│   ┌─────────────────────┐ ┌─────────────────────┐ ┌─────────────────────┐          │
-│   │     Thread-1        │ │     Thread-2        │ │     Thread-N        │          │
-│   │   (Scenario A)      │ │   (Scenario B)      │ │   (Scenario X)      │          │
-│   └─────────┬───────────┘ └─────────┬───────────┘ └─────────┬───────────┘          │
-│             │                       │                       │                        │
-│   ┌─────────▼───────────────────────▼───────────────────────▼───────────┐          │
-│   │                      SHARED SINGLETON LAYER                          │          │
-│   │  ┌─────────────────────────────────────────────────────────────────┐│          │
-│   │  │ ConfigManager (synchronized init, immutable properties)        ││          │
-│   │  │ ExtentReports (synchronized createTest, single report file)    ││          │
-│   │  └─────────────────────────────────────────────────────────────────┘│          │
-│   └─────────────────────────────────────────────────────────────────────┘          │
-│             │                       │                       │                        │
-│   ┌─────────▼───────────────────────▼───────────────────────▼───────────┐          │
-│   │                      THREAD-LOCAL ISOLATION LAYER                    │          │
-│   │                                                                      │          │
-│   │   ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐       │          │
-│   │   │DriverManager    │ │DriverManager    │ │DriverManager    │       │          │
-│   │   │ThreadLocal<     │ │ThreadLocal<     │ │ThreadLocal<     │       │          │
-│   │   │ AppiumDriver>   │ │ AppiumDriver>   │ │ AppiumDriver>   │       │          │
-│   │   │ Port: 8200      │ │ Port: 8201      │ │ Port: 8202      │       │          │
-│   │   └────────┬────────┘ └────────┬────────┘ └────────┬────────┘       │          │
-│   │            │                   │                   │                 │          │
-│   │   ┌────────▼────────┐ ┌────────▼────────┐ ┌────────▼────────┐       │          │
-│   │   │PageObjectMgr    │ │PageObjectMgr    │ │PageObjectMgr    │       │          │
-│   │   │ThreadLocal<     │ │ThreadLocal<     │ │ThreadLocal<     │       │          │
-│   │   │ POM Instance>   │ │ POM Instance>   │ │ POM Instance>   │       │          │
-│   │   │ └─HomeScreen    │ │ └─HomeScreen    │ │ └─HomeScreen    │       │          │
-│   │   │ └─LoginScreen   │ │ └─LoginScreen   │ │ └─LoginScreen   │       │          │
-│   │   └────────┬────────┘ └────────┬────────┘ └────────┬────────┘       │          │
-│   │            │                   │                   │                 │          │
-│   │   ┌────────▼────────┐ ┌────────▼────────┐ ┌────────▼────────┐       │          │
-│   │   │ExtentTest       │ │ExtentTest       │ │ExtentTest       │       │          │
-│   │   │ThreadLocal<     │ │ThreadLocal<     │ │ThreadLocal<     │       │          │
-│   │   │ ExtentTest>     │ │ ExtentTest>     │ │ ExtentTest>     │       │          │
-│   │   │ "Scenario A"    │ │ "Scenario B"    │ │ "Scenario X"    │       │          │
-│   │   └─────────────────┘ └─────────────────┘ └─────────────────┘       │          │
-│   └──────────────────────────────────────────────────────────────────────┘          │
-│             │                       │                       │                        │
-│   ┌─────────▼───────────────────────▼───────────────────────▼───────────┐          │
-│   │                      ATOMIC PORT ALLOCATION LAYER                    │          │
-│   │  ┌─────────────────────────────────────────────────────────────────┐│          │
-│   │  │ DriverFactory.androidPortCounter = AtomicInteger(8200)         ││          │
-│   │  │ DriverFactory.wdaPortCounter = AtomicInteger(8100)             ││          │
-│   │  │                                                                 ││          │
-│   │  │ Thread-1 → getAndIncrement() → Port 8200                       ││          │
-│   │  │ Thread-2 → getAndIncrement() → Port 8201  (atomic, no locks!)  ││          │
-│   │  │ Thread-N → getAndIncrement() → Port 8202                       ││          │
-│   │  └─────────────────────────────────────────────────────────────────┘│          │
-│   └──────────────────────────────────────────────────────────────────────┘          │
-│                                                                                      │
-└─────────────────────────────────────────────────────────────────────────────────────┘
 
-                              CLEANUP PHASE (per thread)
-┌─────────────────────────────────────────────────────────────────────────────────────┐
-│   @After Hook (Hooks.java) - GUARANTEED via try-finally                             │
-│   ┌─────────────────────────────────────────────────────────────────────────────┐   │
-│   │  finally {                                                                   │   │
-│   │      PageObjectManager.reset();   // ThreadLocal.remove() ← clears POM      │   │
-│   │      DriverManager.quitDriver();  // driver.quit() + ThreadLocal.remove()   │   │
-│   │  }                                                                           │   │
-│   └─────────────────────────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────────────────────────┘
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                  PARALLEL TEST EXECUTION (BrowserStack Cloud)            │
+│   ┌──────────────────────────────────────────────────────────────────┐  │
+│   │                    TestNG Orchestration Layer                    │  │
+│   │  testngSuite.xml: parallel="methods" thread-count="N"           │  │
+│   └──────────────────────────────────────────────────────────────────┘  │
+│                                    │                                     │
+│                    ┌───────────────┼───────────────┐                    │
+│                    ▼               ▼               ▼                    │
+│   ┌─────────────────────┐ ┌─────────────────────┐ ┌─────────────────┐ │
+│   │     Thread-1        │ │     Thread-2        │ │     Thread-N    │ │
+│   │   (Scenario A)      │ │   (Scenario B)      │ │   (Scenario X)  │ │
+│   └─────────┬───────────┘ └─────────┬───────────┘ └─────────┬───────┘ │
+│             │                       │                       │           │
+│   ┌─────────▼───────────────────────▼───────────────────────▼───────┐  │
+│   │                  SHARED SINGLETON LAYER                          │  │
+│   │  ┌───────────────────────────────────────────────────────────┐  │  │
+│   │  │ ConfigManager (synchronized init, immutable YAML data)   │  │  │
+│   │  │ ExtentReports (synchronized createTest, single report)    │  │  │
+│   │  └───────────────────────────────────────────────────────────┘  │  │
+│   └──────────────────────────────────────────────────────────────────┘  │
+│             │                       │                       │           │
+│   ┌─────────▼───────────────────────▼───────────────────────▼───────┐  │
+│   │                  THREAD-LOCAL ISOLATION LAYER                    │  │
+│   │                                                                  │  │
+│   │   ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐  │  │
+│   │   │DriverManager    │ │DriverManager    │ │DriverManager    │  │  │
+│   │   │ThreadLocal<     │ │ThreadLocal<     │ │ThreadLocal<     │  │  │
+│   │   │ AppiumDriver>   │ │ AppiumDriver>   │ │ AppiumDriver>   │  │  │
+│   │   │ → BS Session 1  │ │ → BS Session 2  │ │ → BS Session N  │  │  │
+│   │   └────────┬────────┘ └────────┬────────┘ └────────┬────────┘  │  │
+│   │            │                   │                   │            │  │
+│   │   ┌────────▼────────┐ ┌────────▼────────┐ ┌────────▼────────┐  │  │
+│   │   │PageObjectMgr    │ │PageObjectMgr    │ │PageObjectMgr    │  │  │
+│   │   │ThreadLocal<     │ │ThreadLocal<     │ │ThreadLocal<     │  │  │
+│   │   │ POM Instance>   │ │ POM Instance>   │ │ POM Instance>   │  │  │
+│   │   │ └─HomeScreen    │ │ └─HomeScreen    │ │ └─HomeScreen    │  │  │
+│   │   │ └─LoginScreen   │ │ └─LoginScreen   │ │ └─LoginScreen   │  │  │
+│   │   └────────┬────────┘ └────────┬────────┘ └────────┬────────┘  │  │
+│   │            │                   │                   │            │  │
+│   │   ┌────────▼────────┐ ┌────────▼────────┐ ┌────────▼────────┐  │  │
+│   │   │ExtentTest       │ │ExtentTest       │ │ExtentTest       │  │  │
+│   │   │ThreadLocal<     │ │ThreadLocal<     │ │ThreadLocal<     │  │  │
+│   │   │ ExtentTest>     │ │ ExtentTest>     │ │ ExtentTest>     │  │  │
+│   │   │ "Scenario A"    │ │ "Scenario B"    │ │ "Scenario X"    │  │  │
+│   │   └─────────────────┘ └─────────────────┘ └─────────────────┘  │  │
+│   └──────────────────────────────────────────────────────────────────┘  │
+│             │                       │                       │           │
+│             ▼                       ▼                       ▼           │
+│   ┌─────────────────────────────────────────────────────────────────┐  │
+│   │              BROWSERSTACK CLOUD INFRASTRUCTURE                   │  │
+│   │  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐       │  │
+│   │  │ Real Device 1 │  │ Real Device 2 │  │ Real Device N │       │  │
+│   │  │ Galaxy S23    │  │ iPhone 15 Pro │  │ Pixel 8       │       │  │
+│   │  │ Android 13    │  │ iOS 17        │  │ Android 14    │       │  │
+│   │  └───────────────┘  └───────────────┘  └───────────────┘       │  │
+│   │  SDK manages: App upload, Capabilities, Device allocation       │  │
+│   └─────────────────────────────────────────────────────────────────┘  │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+                        CLEANUP PHASE (per thread)
+┌─────────────────────────────────────────────────────────────────────────┐
+│   @After Hook (Hooks.java) - GUARANTEED via try-finally                 │
+│   ┌─────────────────────────────────────────────────────────────────┐   │
+│   │  finally {                                                       │   │
+│   │      PageObjectManager.reset();   // ThreadLocal.remove()       │   │
+│   │      DriverManager.quitDriver();  // Quits BrowserStack session │   │
+│   │  }                                                               │   │
+│   └─────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Component-Level Thread Safety
@@ -169,49 +195,41 @@ public class DriverManager {
 
 ---
 
-#### 2️⃣ DriverFactory - Atomic Port Allocation
+#### 2️⃣ DriverFactory - BrowserStack Cloud Connection
 
-Parallel tests need unique ports to avoid collision. Uses `AtomicInteger` for lock-free thread-safe counters:
+Each thread creates a driver that connects to BrowserStack cloud. The SDK handles device allocation:
 
 ```java
-// DriverFactory.java - Lock-free port allocation
+// DriverFactory.java - BrowserStack cloud connection
 public class DriverFactory {
-    // Atomic counters - thread-safe without synchronized blocks
-    private static final AtomicInteger androidPortCounter = new AtomicInteger(8200);
-    private static final AtomicInteger wdaPortCounter = new AtomicInteger(8100);
     
-    private static AppiumDriver createAndroidDriver() {
+    private static AppiumDriver createAndroidDriver() throws MalformedURLException {
         UiAutomator2Options options = new UiAutomator2Options();
         
-        // Atomic increment - guaranteed unique port per thread
-        int dynamicPort = androidPortCounter.getAndIncrement();
-        if (dynamicPort > 8299) {
-            androidPortCounter.set(8200);  // Wrap around
-            dynamicPort = androidPortCounter.getAndIncrement();
-        }
-        options.setSystemPort(dynamicPort);
+        // Minimal options - BrowserStack SDK injects capabilities from YAML
+        logger.info("Creating Android driver for BrowserStack cloud");
         
-        // Thread-1 gets 8200, Thread-2 gets 8201, etc. - NO COLLISION
-        return new AndroidDriver(url, options);
+        // Each thread gets its own BrowserStack session
+        return new AndroidDriver(URI.create(getBrowserStackHubUrl()).toURL(), options);
     }
     
-    private static AppiumDriver createIOSDriver() {
+    private static AppiumDriver createIOSDriver() throws MalformedURLException {
         XCUITestOptions options = new XCUITestOptions();
         
-        // Same pattern for iOS WDA ports
-        int wdaPort = wdaPortCounter.getAndIncrement();
-        options.setWdaLocalPort(wdaPort);  // 8100, 8101, 8102...
+        // Minimal options - BrowserStack SDK injects capabilities from YAML
+        logger.info("Creating iOS driver for BrowserStack cloud");
         
-        return new IOSDriver(url, options);
+        // Each thread gets its own BrowserStack session
+        return new IOSDriver(URI.create(getBrowserStackHubUrl()).toURL(), options);
     }
 }
 ```
 
-**Port Allocation Strategy:**
-| Platform | Port Range | Purpose |
-|----------|------------|---------|
-| Android | 8200-8299 | UiAutomator2 system port |
-| iOS | 8100-8199 | WebDriverAgent local port |
+**BrowserStack Cloud Benefits:**
+- No port management needed (cloud handles isolation)
+- No local Appium server setup
+- Automatic device allocation from platform list in YAML
+- Real devices with real network conditions
 
 ---
 
@@ -417,8 +435,8 @@ public class Hooks {
 │  ┌────────────────────────────────────────────────────────────────────┐ │
 │  │              SHARED MEMORY (Singletons)                             │ │
 │  │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐  │ │
-│  │  │  ConfigManager   │  │  ExtentReports   │  │  AtomicInteger   │  │ │
-│  │  │  (Properties)    │  │  (Report File)   │  │  (Port Counter)  │  │ │
+│  │  │  ConfigManager   │  │  ExtentReports   │  │ BrowserStack SDK │  │ │
+│  │  │  (YAML Config)   │  │  (Report File)   │  │ (Cloud Manager)  │  │ │
 │  │  └──────────────────┘  └──────────────────┘  └──────────────────┘  │ │
 │  └────────────────────────────────────────────────────────────────────┘ │
 │                                                                          │
@@ -442,11 +460,12 @@ public class Hooks {
 ### Running Parallel Tests
 
 ```bash
-# Enable parallel execution in TestNG
-mvn clean test -DsuiteXmlFile=testngSuite.xml -Dplatform=android -Dbrowserstack.config=browserstack-android.yml -Dcucumber.filter.tags="@androidOnly"
-
-# Or via command line with custom thread count
-mvn test -Dparallel=methods -DthreadCount=4 -Dplatform=android -DsuiteXmlFile=testngSuite.xml
+# Enable parallel execution in TestNG (standard command)
+mvn clean test \
+    -DsuiteXmlFile=testngSuite.xml \
+    -Dplatform=android \
+    -Dbrowserstack.config=browserstack-android.yml \
+    -Dcucumber.filter.tags="@androidOnly"
 ```
 
 **testngSuite.xml configuration:**
@@ -472,7 +491,7 @@ mvn test -Dparallel=methods -DthreadCount=4 -Dplatform=android -DsuiteXmlFile=te
 | PageObjectManager | ThreadLocal | ✅ | Each thread has isolated page objects |
 | ExtentReportManager | ThreadLocal + Synchronized | ✅ | Shared report, isolated test nodes |
 | ConfigManager | Synchronized init | ✅ | One-time load, immutable after |
-| DriverFactory | AtomicInteger | ✅ | Lock-free port allocation |
+| DriverFactory | BrowserStack Cloud | ✅ | SDK handles device allocation & isolation |
 | BasePage | Stateless | ✅ | Uses thread's driver via DriverManager |
 | Hooks | try-finally | ✅ | Guaranteed cleanup |
 
@@ -485,7 +504,7 @@ mvn test -Dparallel=methods -DthreadCount=4 -Dplatform=android -DsuiteXmlFile=te
 | **Singleton Pattern** | `ConfigManager` with synchronized init | Centralized multi-env configuration |
 | **Thread-Local** | `DriverManager`, `PageObjectManager`, `ExtentTest` | Complete thread isolation for parallel execution |
 | **Composition over Inheritance** | Step definitions use `PageObjectManager.getInstance()` | Flexible, avoids diamond problem |
-| **Atomic Operations** | `AtomicInteger` port counters | Lock-free thread-safe port allocation |
+| **SDK Integration** | BrowserStack Java SDK manages capabilities, devices | Eliminates manual configuration overhead |
 | **Lazy Initialization** | `PageObjectManager.getHomeScreen()` | Memory efficient, on-demand creation |
 | **Template Method** | `BasePage` defines common actions | DRY, consistent element interactions |
 | **Strategy Pattern** | Element-based assertions with fallbacks | Reliable mobile element detection |
@@ -653,22 +672,6 @@ mvn clean test \
     -Dcucumber.filter.tags="@iosOnly"
 ```
 - **Verify:** BrowserStack dashboard shows sessions; logs confirm app ID and device allocation.
-
-### Custom App IDs (Best Practice)
-Instead of using ephemeral `bs://...` IDs, use `custom_id` for stable app references:
-```yaml
-# browserstack-android.yml (SDK-only)
-app: custom_id:my-android-app-v1  # Human-readable, stable across runs
-
-platforms:
-  - deviceName: Samsung Galaxy S23 Ultra
-    osVersion: 13.0
-    platformName: android
-```
-Benefits:
-- Stable app reference across CI/CD runs.
-- Easy to rotate app versions without changing config.
-- Self-documenting (e.g., `custom_id:my-app-v1` vs `bs://02d88594d8c7d0ba`).
 
 ### Platform Tag Filtering (Critical)
 

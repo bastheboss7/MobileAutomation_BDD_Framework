@@ -706,18 +706,6 @@ BROWSERSTACK_USERNAME=<your-browserstack-username>
 BROWSERSTACK_ACCESS_KEY=<your-browserstack-access-key>
 ```
 
-#### 2. **iOS SDK Tests** ([sdk-ios-ci.yml](.github/workflows/sdk-ios-ci.yml))
-Dedicated iOS SDK testing workflow (legacy/backward compatibility).
-
-**Triggers:**
-- Push to `appiumMobile`, `main`, `develop` branches
-- Pull requests to `appiumMobile`, `main`
-
-**Jobs:**
-- 🍎 Run iOS SDK Tests on BrowserStack
-- 📊 Upload test reports
-- ✅ Publish test results
-
 ### Setting Up GitHub Actions
 
 #### Step 1: Add BrowserStack Secrets
@@ -867,7 +855,6 @@ All workflows upload test reports as artifacts:
 Add status badges to README:
 ```markdown
 [![BrowserStack SDK Tests](https://github.com/<owner>/<repo>/actions/workflows/browserstack-sdk.yml/badge.svg)](https://github.com/<owner>/<repo>/actions/workflows/browserstack-sdk.yml)
-[![iOS SDK Tests](https://github.com/<owner>/<repo>/actions/workflows/sdk-ios-ci.yml/badge.svg)](https://github.com/<owner>/<repo>/actions/workflows/sdk-ios-ci.yml)
 ```
 
 

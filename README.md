@@ -14,10 +14,9 @@ src/
 │   └── com/automation/framework/
 │       ├── core/
 │       │   ├── ConfigManager.java          # Multi-environment configuration
-│       │   ├── DriverFactory.java          # Platform-specific driver creation
+│       │   ├── DriverFactory.java          # Platform-specific driver creation (SDK-only)
 │       │   ├── DriverManager.java          # Thread-safe driver management
-│       │   ├── BrowserStackCapabilityBuilder.java # BS specific capabilities
-│       │   └── BrowserStackAppUploader.java # BS app upload utility
+│       │   └── BrowserStackCapabilityBuilder.java # BS specific capabilities (legacy)
 │       ├── pages/
 │       │   ├── BasePage.java               # Base class for all page objects
 │       │   ├── PageObjectManager.java      # Thread-safe page object lifecycle
@@ -572,16 +571,15 @@ mvn clean test -Pios -Denv=local
 mvn clean test -Pandroid -Denv=local -Dcucumber.filter.tags="@MyTag"
 ```
 
-### ☁️ BrowserStack Execution
 ### 🧪 Local Android (Emulator) Run
 
 Use the local YAML [local-android.yml](local-android.yml) and run on an emulator.
 
-Prerequisites:
+**Prerequisites:**
 - Android SDK + AVD created (e.g., `Pixel_6_API_33`)
 - Appium 2.x installed
 
-Quick start:
+**Quick start:**
 ```bash
 # 1) Start emulator (headless by default)
 ./scripts/start-emulator.sh Pixel_6_API_33
@@ -593,55 +591,46 @@ Quick start:
 mvn clean test -Pandroid -Denv=local -Dcucumber.filter.tags="@Login and not @Skip"
 ```
 
-Local config values come from [local-android.yml](local-android.yml):
+**Local config values** come from [local-android.yml](local-android.yml):
 - `deviceName: emulator-5554`
 - `platformVersion: 12`
 - `appPath: ./app/local/android/android.wdio.native.app.v1.0.8.apk`
 - `HUB: http://127.0.0.1:4723`
 
-Tips:
+**Tips:**
 - Verify emulator device with `adb devices`.
 - If your AVD name differs, pass it to the script: `./scripts/start-emulator.sh <YourAVDName>`.
 - If you use a different local port, update `HUB` in [local-android.yml](local-android.yml).
 
-The framework is optimized for **BrowserStack App Automate**. When using the BrowserStack hub, the framework automatically handles app uploads and credential injection.
+### 🧪 Local iOS (Simulator) Run
 
-#### Running on BrowserStack
+Use the local YAML [local-ios.yml](local-ios.yml) and run on a simulator.
 
-| Platform | Application | CLI Filter |
-|----------|-------------|------------|
-| **Android** | `LocalSample.apk` | `-Dcucumber.filter.tags="@LocalSample"` |
-| **iOS** | `BStackSampleApp.ipa` | `-Dcucumber.filter.tags="@BStackSample"` |
+**Prerequisites:**
+- Xcode installed with iOS Simulator
+- Appium 2.x installed
+- XCUITest driver: `appium driver install xcuitest`
 
-**Example Commands:**
+**Quick start:**
 ```bash
-# Run Android tests (Standard Mode; bs:// app URL via BrowserStackAppUploader)
-mvn clean test -Pbrowserstack -Dplatform=android -Denv=local.bs -Dcucumber.filter.tags="@androidOnly"
+# 1) Start Appium
+./scripts/start-appium.sh 4723
 
-# Run iOS tests
-mvn clean test -Pbrowserstack -Dplatform=ios -Denv=local.bs -Dcucumber.filter.tags="@BStackSample"
-
-# (Optional) Enable BrowserStack SDK agent (for enhanced reporting)
-# Disabled by default. To enable, add -DsdkAgent=true
-mvn clean test -Pbrowserstack -Dplatform=ios -Denv=local.bs -DsdkAgent=true -Dcucumber.filter.tags="@BStackSample"
+# 2) Run local iOS tests (uses local-ios.yml)
+mvn clean test -Pios -Denv=local -Dcucumber.filter.tags="@Login and not @Skip"
 ```
 
-#### Verify Android on BrowserStack
-1. Run: `mvn clean test -Pbrowserstack -Dplatform=android -Denv=local.bs -Dcucumber.filter.tags="@androidOnly"`.
-2. In session logs, confirm `app=bs://...` is set (uploaded by BrowserStackAppUploader).
-3. In capabilities, confirm `hub=https://<user>:<key>@hub.browserstack.com/wd/hub` (authorized hub, no hubUrl in browserstack-android.yml).
-4. BrowserStack dashboard → Build → Session details: ensure device is Android and status is “completed”.
+**Local config values** come from [local-ios.yml](local-ios.yml):
+- `deviceName: iPhone 14`
+- `platformVersion: 16.0`
+- `appPath: ./app/local/ios/wdiodemoapp.app`
+- `HUB: http://127.0.0.1:4723`
 
-#### Key Capabilities
-- **Auto-Upload**: Apps are automatically uploaded to BrowserStack via REST API if a local path is provided in `appPath`.
-- **SDK Integration**: Integrated with `browserstack-java-sdk` for enhanced reporting and analytics.
-- **Robust Interaction**: Custom `safeFindElement` and multi-modal click strategies bypass SDK agent interference on iOS.
-- **Android Standard Mode**: Uses explicit `bs://` app URL plus authorized Hub (`https://user:key@hub.browserstack.com`) set by the framework; no hubUrl in `browserstack-android.yml`.
+**Tips:**
+- List available simulators: `xcrun simctl list devices available`
+- If your simulator differs, update `deviceName` and `platformVersion` in [local-ios.yml](local-ios.yml).
 
-#### Troubleshooting (Android)
-- **Authorization required**: Ensure the hub is authorized. The framework formats `hubUrl` to `https://<user>:<key>@hub-cloud.browserstack.com/wd/hub` automatically.
-- **[BROWSERSTACK_INVALID_APP_URL]**: Confirm `app` capability shows `bs://...`. The framework uploads the local app path via `BrowserStackAppUploader` and injects the returned `bs://` URL.
-- **SDK overrides**: The SDK `-javaagent` is disabled by default. If enabled via `-DsdkAgent=true`, ensure no `hubUrl` exists in `browserstack-android.yml` to avoid capability pollution.
+---
 
 ## **BrowserStack (SDK-Only)**
 
@@ -677,7 +666,7 @@ mvn clean test -Pbrowserstack -Dplatform=android -Denv=browserstack -Dcucumber.f
 - **Credentials:** Provide via environment (same as Android above).
 - **Run:**
 ```bash
-mvn clean test -Pbrowserstack -Dplatform=ios -Denv=browserstack -Dcucumber.filter.tags="@BStackSample"
+mvn clean test -Pbrowserstack -Dplatform=ios -Denv=browserstack -Dcucumber.filter.tags="@iosOnly"
 ```
 - **Verify:** BrowserStack dashboard shows sessions; logs confirm app ID and device allocation.
 
@@ -696,4 +685,63 @@ Benefits:
 - Stable app reference across CI/CD runs.
 - Easy to rotate app versions without changing config.
 - Self-documenting (e.g., `custom_id:my-app-v1` vs `bs://02d88594d8c7d0ba`).
+
+### Platform Tag Filtering (Critical)
+
+**All platform-specific commands MUST include the `-Dcucumber.filter.tags` parameter** to isolate tests by platform. This prevents cross-platform test contamination and ensures correct locator evaluation.
+
+#### Why Tag Filtering is Essential
+- **Locator Compatibility**: Android and iOS interpret XPath, CSS, and ID locators differently. Running Android-only tests on iOS (or vice versa) causes `ClassCastException` and element interaction failures.
+- **Driver Response Marshalling**: The BrowserStack Java SDK formats element responses differently per platform. Platform-aware tests account for these differences.
+- **Step Isolation**: Steps marked with `@androidOnly` use Android-specific navigation; steps marked with `@iosOnly` use iOS-specific gestures.
+
+#### Tag Usage
+- `@androidOnly`: Tests/steps that execute ONLY on Android
+- `@iosOnly`: Tests/steps that execute ONLY on iOS
+- `@BStackSample`: Shared scenarios (not platform-specific; optional)
+
+#### Commands with Proper Filtering
+```bash
+# Android: Run only @androidOnly scenarios
+mvn clean test -Pbrowserstack -Dplatform=android -Denv=browserstack -Dcucumber.filter.tags="@androidOnly"
+
+# iOS: Run only @iosOnly scenarios
+mvn clean test -Pbrowserstack -Dplatform=ios -Denv=browserstack -Dcucumber.filter.tags="@iosOnly"
+
+# Multi-tag (AND logic): Run scenarios tagged with both @androidOnly AND @smoke
+mvn clean test -Pbrowserstack -Dplatform=android -Denv=browserstack -Dcucumber.filter.tags="@androidOnly and @smoke"
+
+# Exclusive execution (NOT logic): Run all scenarios EXCEPT @androidOnly (useful for iOS)
+mvn clean test -Pbrowserstack -Dplatform=ios -Denv=browserstack -Dcucumber.filter.tags="not @androidOnly"
+```
+
+#### Common Mistakes
+- ❌ **Missing tag filter**: `mvn clean test -Pbrowserstack -Dplatform=ios -Denv=browserstack` → Runs ALL scenarios including `@androidOnly`, causing failures on iOS.
+- ❌ **Wrong tag**: `mvn clean test -Pbrowserstack -Dplatform=ios -Denv=browserstack -Dcucumber.filter.tags="@androidOnly"` → Runs Android tests on iOS; element interactions fail.
+- ❌ **Typo in tag**: `mvn clean test -Pbrowserstack -Dplatform=android -Denv=browserstack -Dcucumber.filter.tags="@androidonly"` (lowercase) → Tag doesn't match (case-sensitive); no tests run.
+
+#### Example Feature File Structure
+```gherkin
+@androidOnly
+Scenario: Login with valid credentials (Android-specific)
+  Given User opens the wdiodemoapp on Android
+  When User enters username and taps login
+  Then Login success is displayed
+
+@iosOnly
+Scenario: Verify Alert Functionality (iOS-specific)
+  Given User opens the BStackSampleApp on iOS
+  When User taps the alert trigger button
+  Then Alert is displayed
+  And User accepts the alert
+
+@BStackSample
+Scenario: Shared flow (both platforms)
+  Given User opens the app
+  When User performs a generic action
+  Then Generic success is displayed
+```
+
+**Always validate your feature file tags match your `-Dcucumber.filter.tags` parameter before running tests.**
+
 

@@ -1,7 +1,6 @@
 package stepdefinitions;
 
 import com.automation.framework.core.ConfigManager;
-import com.automation.framework.core.DevicePool;
 import com.automation.framework.core.DriverFactory;
 import com.automation.framework.core.DriverManager;
 import com.automation.framework.pages.PageObjectManager;
@@ -82,7 +81,6 @@ public class Hooks {
             // ALWAYS clean up resources to prevent leaks
             PageObjectManager.reset(); // Reset page objects for next scenario
             DriverManager.quitDriver(); // Quit driver
-            DevicePool.releaseDevice(); // Release device from pool
             logger.debug("Scenario completed: {} - {}", scenario.getName(), scenario.getStatus());
         }
     }

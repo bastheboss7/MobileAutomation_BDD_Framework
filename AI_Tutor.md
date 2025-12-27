@@ -21,49 +21,26 @@ Framework Overview:
 - Language: Java 21
 - Build Tool: Maven
 - Test Framework: TestNG + Cucumber BDD
-- Mobile Automation: Appium (Android & iOS)
+- Mobile Automation: Appium (Android & iOS) on BrowserStack cloud (SDK-managed capabilities)
 - Reporting: Extent Reports + Cucumber HTML Reports
 - Design Patterns: Page Object Model, Factory Pattern, Singleton, ThreadLocal
+- Config: BrowserStack YAML (`browserstack-*.yml`) with `frameworkOptions` for waits; no local properties
 - CI/CD: GitHub Actions, Azure DevOps, Docker
 
-Project Structure (Maven Standard Layout):
+Project Structure (BrowserStack-only):
 src/
-├── main/java/                              # Framework Library
+├── main/java/
 │   └── com/automation/framework/
-│       ├── core/
-│       │   ├── ConfigManager.java          # Multi-environment configuration
-│       │   ├── DriverFactory.java          # Platform-specific driver creation
-│       │   └── DriverManager.java          # Thread-safe driver management
-│       ├── pages/
-│       │   ├── BasePage.java               # Base class for all page objects
-│       │   ├── locators/
-│       │   │   └── WdioLocators.java       # Centralized locator constants
-│       │   └── screens/
-│       │       └── LoginScreen.java        # Page object implementation
-│       └── reports/
-│           └── ExtentReportManager.java    # Extent Reports management
-│
-├── main/resources/
-│   ├── config.properties                   # Base configuration
-│   ├── config-local.properties             # Local environment overrides
-│   ├── config-staging.properties           # Staging environment
-│   ├── config-prod.properties              # Production environment
-│   └── logback.xml                         # Logging configuration
-│
-├── test/java/                              # Test Code
-│   ├── listeners/
-│   │   ├── ExtentReportListener.java       # Report lifecycle
-│   │   ├── RetryAnalyzer.java              # Retry failed tests
-│   │   └── RetryTransformer.java           # Auto-apply retry
-│   ├── runner/
-│   │   └── TestNgRunner.java               # Cucumber-TestNG runner
-│   └── stepdefinitions/
-│       ├── Hooks.java                      # Cucumber hooks
-│       └── WdioLoginSteps.java             # Step definitions
-│
-└── test/resources/
-    └── features/
-        └── wdioLogin.feature               # BDD feature files
+│       ├── core/ (ConfigManager – YAML loader, DriverFactory – BrowserStack SDK, DriverManager – ThreadLocal, FrameworkConstants – minimal)
+│       ├── pages/ (BasePage, PageObjectManager, locators, screens)
+│       └── reports/ExtentReportManager
+├── main/resources/ (extent-config.xml, logback.xml)
+├── test/java/ (listeners, runner, stepdefinitions)
+└── test/resources/features/
+
+TestNG Suite: `testngSuite.xml` (was testngParallel.xml)
+
+Root YAML: browserstack-android*.yml, browserstack-ios*.yml with `frameworkOptions` for waits.
 
 Teaching Objectives - Cover these topics in order:
 
@@ -172,8 +149,8 @@ Driver Layer      →  "Kitchen Equipment" (actual tools)
 
 **3. SMART DESIGN #1: Factory Pattern (DriverFactory)**
 - Analogy: A car factory that builds different car models (Android/iOS) from the same blueprint
-- Why it's smart: One method createDriver() handles both platforms
-- The atomic port counter trick for parallel execution
+- Why it's smart: One method createDriver() handles both platforms (BrowserStack-only)
+- BrowserStack SDK injects capabilities from YAML; code stays minimal
 
 **4. SMART DESIGN #2: Singleton Pattern (ConfigManager)**
 - Analogy: A library with ONE master catalog that everyone shares
@@ -183,7 +160,7 @@ Driver Layer      →  "Kitchen Equipment" (actual tools)
 **5. SMART DESIGN #3: Thread-Local Pattern (DriverManager)**
 - Analogy: A gym where each person gets their own locker
 - Why it's smart: Parallel tests don't fight over the same driver
-- How ThreadLocal gives each test its own isolated driver
+- ThreadLocal gives each test its own isolated driver; cleanup in Hooks
 
 **6. SMART DESIGN #4: Page Object Model**
 - Analogy: A recipe book - change recipe once, all dishes update
@@ -211,8 +188,8 @@ Feature → Runner → Hooks(@Before) → StepDef → PageObject → Driver → 
 **9. WHY THIS IS PRODUCTION-READY**
 Explain these enterprise features simply:
 - Retry mechanism for flaky mobile tests
-- Multi-environment config (local/staging/prod)
-- Parallel execution support
+- BrowserStack YAML config with SDK-managed capabilities; waits via `frameworkOptions`
+- Parallel execution support (ThreadLocal drivers)
 - Detailed HTML reports with screenshots
 - CI/CD ready (GitHub Actions, Azure DevOps)
 

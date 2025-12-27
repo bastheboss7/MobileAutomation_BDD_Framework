@@ -138,16 +138,14 @@ jobs:
           BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
         run: |
           # Maven command structure:
-          # -Pbrowserstack: Activates BrowserStack profile (adds SDK agent)
-          # -Dbrowserstack.config: Specifies YAML config file with app ID and device list
+          # -DsuiteXmlFile: TestNG suite file
+          # -Dbrowserstack.config: YAML config file with app ID and device list
           # -Dplatform=android: Sets platform for DriverFactory
-          # -Denv=browserstack: Triggers ConfigManager to use BrowserStack mode
           # -Dcucumber.filter.tags: Applies tag filters (@androidOnly, @smoke, etc.)
           mvn clean test \
-            -Pbrowserstack \
+            -DsuiteXmlFile=testngSuite.xml \
             -Dbrowserstack.config=browserstack-android-ci.yml \
             -Dplatform=android \
-            -Denv=browserstack \
             -Dcucumber.filter.tags="${{ steps.tags.outputs.filter }}" \
             --no-transfer-progress \
             -q
@@ -235,10 +233,9 @@ jobs:
           # Same Maven structure as Android, but with iOS-specific config
           # browserstack-ios-ci.yml contains: iOS devices, automationName: XCUITest, app ID
           mvn clean test \
-            -Pbrowserstack \
+            -DsuiteXmlFile=testngSuite.xml \
             -Dbrowserstack.config=browserstack-ios-ci.yml \
             -Dplatform=ios \
-            -Denv=browserstack \
             -Dcucumber.filter.tags="${{ steps.tags.outputs.filter }}" \
             --no-transfer-progress \
             -q

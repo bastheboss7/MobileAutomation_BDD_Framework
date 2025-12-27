@@ -1,70 +1,97 @@
 # Mobile Automation BDD Framework
 
-Enterprise-grade BDD test automation framework for mobile applications using Appium, Cucumber, and TestNG. Supports both **Android** and **iOS** platforms with a clean, modular architecture.
+## 🚀 What’s new (Dec 2025)
+- BrowserStack-only: all local/emulator support removed.
+- Capabilities injected by BrowserStack SDK from YAML (no manual capability setting in code).
+- ConfigManager loads raw BrowserStack YAML only; no properties files.
+- `browserstack.local` support removed; only cloud device runs.
+- Waits configured via system property `implicitWait` or defaults; YAML does not include waits.
 
-[![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.org/)
-[![Appium](https://img.shields.io/badge/Appium-2.x-purple.svg)](https://appium.io/)
-[![Cucumber](https://img.shields.io/badge/Cucumber-7.20-green.svg)](https://cucumber.io/)
-
-## 🏗️ Architecture
-
+## 🚀 What’s new (Dec 2025)
+## 🧪 Test Execution
+- Default TestNG suite: `testngSuite.xml` (renamed from testngParallel.xml)
+- Android (tag filter required):
+```bash
+mvn clean test \
+    -DsuiteXmlFile=testngSuite.xml \
+    -Dplatform=android \
+    -Dbrowserstack.config=browserstack-android.yml \
+    -Dcucumber.filter.tags="@androidOnly"
 ```
-src/
-├── main/java/                              # Framework Library
+- iOS (tag filter required):
+```bash
+mvn clean test \
+    -DsuiteXmlFile=testngSuite.xml \
+    -Dplatform=ios \
+    -Dbrowserstack.config=browserstack-ios.yml \
+    -Dcucumber.filter.tags="@iosOnly"
+```
+- Never run without the platform-specific `-Dcucumber.filter.tags`; mixing Android/iOS steps in one run will fail.
+├── main/java/
 │   └── com/automation/framework/
-│       ├── core/
-│       │   ├── ConfigManager.java          # Multi-environment configuration
-│       │   ├── DriverFactory.java          # Platform-specific driver creation
-│       │   ├── DriverManager.java          # Thread-safe driver management
-│       │   ├── FrameworkConstants.java     # Centralized configuration constants
-│       │   └── DevicePool.java             # Device pool management for parallel execution
+## ⚙️ Configuration (BrowserStack-only)
+- Credentials via environment variables (`BROWSERSTACK_USERNAME`, `BROWSERSTACK_ACCESS_KEY`) or YAML (`userName`, `accessKey`).
+- Select platform via `-Dplatform=android|ios` (default android). BrowserStack SDK reads platforms list from YAML.
+- YAML lives at repo root; SDK injects capabilities directly. No config.properties files.
+- Waits: configure via system property `implicitWait` or code defaults; do not include waits in YAML.
+- `browserstack.local` is not used.
 │       ├── pages/
-│       │   ├── BasePage.java               # Base class for all page objects
-│       │   ├── PageObjectManager.java      # Thread-safe page object lifecycle
-│       │   ├── locators/
-│       │   │   └── WdioLocators.java       # Centralized locator constants
-│       │   └── screens/
-│       │       ├── HomeScreen.java         # Home screen with navigation
-│       │       └── LoginScreen.java        # Login page object
-│       └── reports/
-│           └── ExtentReportManager.java    # Extent Reports management
-│
-├── main/resources/
-│   ├── config.properties                   # Base configuration
-│   ├── browserstack/
-│   │   └── config-*.properties             # BrowserStack environment overrides
-│   └── logback.xml                         # Logging configuration
-│
-├── test/java/                              # Test Code
-│   ├── listeners/
-│   │   ├── ExtentReportListener.java       # Report lifecycle management
-│   │   ├── RetryAnalyzer.java              # Retry failed tests
-│   │   └── RetryTransformer.java           # Auto-apply retry to all tests
-│   ├── runner/
-│   │   └── TestNgRunner.java               # Cucumber-TestNG integration
-│   └── stepdefinitions/
-│       ├── Hooks.java                      # Cucumber Before/After hooks
-│       └── WdioLoginSteps.java             # Step definitions
-│
-└── test/resources/
-    └── features/
-        └── wdioLogin.feature               # BDD feature files
+│       │   ├── BasePage.java               # Base class with waits/helpers
+### Running Parallel Tests
+
+```bash
+# Enable parallel execution (suite controls parallelism)
+mvn clean test \
+    -DsuiteXmlFile=testngSuite.xml \
+    -Dplatform=android \
+    -Dbrowserstack.config=browserstack-android.yml \
+    -Dcucumber.filter.tags="@androidOnly"
 ```
 
----
-
-## 🧵 Parallel Execution Architecture & Thread Lifecycle
-
-This framework is designed from the ground up for **thread-safe parallel execution**. Each component uses specific patterns to ensure complete isolation between concurrent test threads.
-
-### Thread Lifecycle Flow Diagram
-
+If you maintain a parallel TestNG suite, ensure the file is `testngSuite.xml` and includes your desired `parallel`/`thread-count` settings.
+- Default TestNG suite: `testngSuite.xml` (renamed from testngParallel.xml)
+- Android (tag filter required):
+### Android
+...
+- **Run:**
+```bash
+mvn clean test \
+    -DsuiteXmlFile=testngSuite.xml \
+    -Dplatform=android \
+    -Dbrowserstack.config=browserstack-android.yml \
+    -Dcucumber.filter.tags="@androidOnly"
 ```
-┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                        PARALLEL TEST EXECUTION LIFECYCLE                             │
-├─────────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                      │
-│   ┌──────────────────────────────────────────────────────────────────────────────┐  │
+mvn clean test -DsuiteXmlFile=testngSuite.xml -Dplatform=ios -Denv=browserstack -Dcucumber.filter.tags="@iosOnly"
+```
+iOS
+...
+- **Run:**
+```bash
+mvn clean test \
+    -DsuiteXmlFile=testngSuite.xml \
+    -Dplatform=ios \
+    -Dbrowserstack.config=browserstack-ios.yml \
+    -Dcucumber.filter.tags="@iosOnly"
+```
+- YAML lives at repo root; SDK injects capabilities directly. No config.properties files.
+- Waits: set `frameworkOptions.implicitWait` and `frameworkOptions.explicitWait` in YAML; defaults exist in code.
+#### Commands with Proper Filtering
+```bash
+# Android: Run only @androidOnly scenarios
+mvn clean test -DsuiteXmlFile=testngSuite.xml -Dplatform=android -Dbrowserstack.config=browserstack-android.yml -Dcucumber.filter.tags="@androidOnly"
+
+# iOS: Run only @iosOnly scenarios
+mvn clean test -DsuiteXmlFile=testngSuite.xml -Dplatform=ios -Dbrowserstack.config=browserstack-ios.yml -Dcucumber.filter.tags="@iosOnly"
+
+# Multi-tag (AND logic): Run scenarios tagged with both @androidOnly AND @smoke
+mvn clean test -DsuiteXmlFile=testngSuite.xml -Dplatform=android -Dbrowserstack.config=browserstack-android.yml -Dcucumber.filter.tags="@androidOnly and @smoke"
+
+# Exclusive execution (NOT logic): Run all scenarios EXCEPT @androidOnly (useful for iOS)
+mvn clean test -DsuiteXmlFile=testngSuite.xml -Dplatform=ios -Dbrowserstack.config=browserstack-ios.yml -Dcucumber.filter.tags="not @androidOnly"
+```
+- ❌ **Missing tag filter**: `mvn clean test -Dplatform=ios -Dbrowserstack.config=browserstack-ios.yml` → Runs ALL scenarios including `@androidOnly`, causing failures on iOS.
+- ❌ **Wrong tag**: `mvn clean test -Dplatform=ios -Dbrowserstack.config=browserstack-ios.yml -Dcucumber.filter.tags="@androidOnly"` → Runs Android tests on iOS; element interactions fail.
+- ❌ **Typo in tag**: `mvn clean test -Dplatform=android -Dbrowserstack.config=browserstack-android.yml -Dcucumber.filter.tags="@androidonly"` (lowercase) → Tag doesn't match (case-sensitive); no tests run.
 │   │                         TestNG Orchestration Layer                            │  │
 │   │  testngParallel.xml: parallel="methods" thread-count="N"                     │  │
 │   └──────────────────────────────────────────────────────────────────────────────┘  │

@@ -17,8 +17,6 @@ public class PageObjectManager {
     private static final ThreadLocal<PageObjectManager> instance = ThreadLocal.withInitial(PageObjectManager::new);
 
     // Lazy-initialized page objects
-
-    private com.automation.framework.pages.screens.LocalSampleScreen localSampleScreen;
     private com.automation.framework.pages.screens.BStackSampleScreen bStackSampleScreen;
     private com.automation.framework.pages.screens.HomeScreen homeScreen;
     private com.automation.framework.pages.screens.LoginScreen loginScreen;
@@ -34,18 +32,6 @@ public class PageObjectManager {
      */
     public static PageObjectManager getInstance() {
         return instance.get();
-    }
-
-    /**
-     * Get LocalSampleScreen page object (lazy initialization).
-     * 
-     * @return LocalSampleScreen instance
-     */
-    public com.automation.framework.pages.screens.LocalSampleScreen getLocalSampleScreen() {
-        if (localSampleScreen == null) {
-            localSampleScreen = new com.automation.framework.pages.screens.LocalSampleScreen();
-        }
-        return localSampleScreen;
     }
 
     /**

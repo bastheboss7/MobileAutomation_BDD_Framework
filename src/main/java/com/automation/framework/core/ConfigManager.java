@@ -5,35 +5,33 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.Properties;
 
 /**
- * Environment-aware configuration manager.
- * Supports multiple environments (local, staging, prod) and platforms (android,
- * ios).
+ * BrowserStack configuration manager.
+ * Loads configuration exclusively from BrowserStack YAML files.
+ * Supports Android and iOS platforms running on BrowserStack cloud.
  * 
- * Environment loading priority:
- * 1. config.properties (base defaults)
- * 2. config-{env}.properties (environment-specific overrides)
- * 3. System properties (CLI overrides)
+ * YAML file resolution:
+ * 1. Project root (development)
+ * 2. src/test/resources/ (Maven test phase)
+ * 3. target/test-classes/ (compiled tests)
+ * 
+ * File naming convention:
+ * - Development: browserstack-{platform}.yml (e.g., browserstack-android.yml, browserstack-ios.yml)
+ * - CI/CD: browserstack-{platform}-ci.yml (with hardcoded app IDs)
  * 
  * @author Baskar
- * @version 3.0.0
+ * @version 4.0.0
  */
 public class ConfigManager {
     private static final Logger logger = LoggerFactory.getLogger(ConfigManager.class);
-    private static final Properties properties = new Properties();
-    private static final Properties objectProperties = new Properties();
-    private static final Map<String, Object> rawYamlData = new java.util.HashMap<>();  // Store raw YAML for complex structures
+    private static final Map<String, Object> rawYamlData = new java.util.HashMap<>();
     private static boolean initialized = false;
-    private static String currentEnvironment;
 
     // System property keys
-    public static final String ENV_KEY = "env";
     public static final String PLATFORM_KEY = "platform";
 
     // Default values
-    private static final String DEFAULT_ENV = "local";
     private static final String DEFAULT_PLATFORM = "android";
 
     private ConfigManager() {
@@ -41,69 +39,62 @@ public class ConfigManager {
     }
 
     /**
-     * Initialize configuration from YAML files.
-     * Supports both Local and BrowserStack environments using YAML.
+     * Initialize configuration from BrowserStack YAML files.
+     * Always runs in BrowserStack mode with SDK enabled.
      */
     public static synchronized void init() {
         if (initialized) {
             return;
         }
 
-        logger.info("Initializing ConfigManager (Unified YAML Mode)...");
-        currentEnvironment = System.getProperty(ENV_KEY, DEFAULT_ENV);
+        logger.info("Initializing ConfigManager (BrowserStack Mode)...");
         String platform = System.getProperty(PLATFORM_KEY, DEFAULT_PLATFORM).toLowerCase();
 
-        // Determine config file path
-        String configFileName = System.getProperty("browserstack.config");
-        if (configFileName == null || configFileName.isEmpty()) {
-            if (currentEnvironment.contains("bs") || currentEnvironment.contains("browserstack")) {
-                configFileName = "browserstack-" + (platform.contains("ios") ? "ios" : "android") + ".yml";
-            } else {
-                configFileName = "local-" + (platform.contains("ios") ? "ios" : "android") + ".yml";
-            }
+        // Determine YAML file name (always BrowserStack)
+        String yamlFileName = System.getProperty("browserstack.config");
+        if (yamlFileName == null || yamlFileName.isEmpty()) {
+            yamlFileName = "browserstack-" + (platform.contains("ios") ? "ios" : "android") + ".yml";
         }
 
-        // Search for config file in multiple locations
-        java.io.File configFile = resolveConfigFile(configFileName);
+        // Find YAML file in multiple locations
+        java.io.File yamlFile = findYamlFile(yamlFileName);
         
-        if (configFile == null) {
-            logger.error("CRITICAL: Could not find configuration file {} in any search path", configFileName);
-            logger.error("Searched locations: project root, src/test/resources/, target/test-classes/");
-            throw new RuntimeException("Configuration file not found: " + configFileName);
+        if (yamlFile == null) {
+            String message = String.format("YAML file '%s' not found. Searched: project root, src/test/resources/, target/test-classes/", yamlFileName);
+            logger.error(message);
+            throw new RuntimeException(message);
         }
         
-        logger.info("Loading configuration from: {} (Absolute: {})", configFileName, configFile.getAbsolutePath());
+        logger.info("Loading YAML from: {} (Absolute: {})", yamlFileName, yamlFile.getAbsolutePath());
         try {
-            loadYamlConfig(configFile.getAbsolutePath());
+            loadYamlConfig(yamlFile.getAbsolutePath());
         } catch (Exception e) {
-            logger.error("CRITICAL: Failed to load YAML configuration: {}", configFile.getAbsolutePath(), e);
+            logger.error("Failed to load YAML: {}", yamlFile.getAbsolutePath(), e);
             throw new RuntimeException("Failed to load YAML configuration", e);
         }
 
-        // Enforce BrowserStack SDK mode for BrowserStack environments
-        if (currentEnvironment.contains("bs") || currentEnvironment.contains("browserstack")) {
-            System.setProperty("browserstack.sdk", "true");
-        }
+        // Always enable BrowserStack SDK mode
+        System.setProperty("browserstack.sdk", "true");
 
         if (System.getProperty("browserstack.platforms") == null) {
             System.setProperty("browserstack.platforms", platform);
         }
 
         initialized = true;
-        logger.info("ConfigManager initialized - env: {}, platform: {}", currentEnvironment, getPlatform());
+        logger.info("ConfigManager initialized - platform: {}", getPlatform());
     }
 
     /**
-     * Resolve configuration file from multiple search locations.
+     * Find YAML file from multiple search locations.
      * Priority:
      * 1. Project root (for development)
      * 2. src/test/resources/ (for Maven test phase)
      * 3. target/test-classes/ (for compiled tests)
      * 
-     * @param fileName Config file name (e.g., browserstack-android.yml)
+     * @param fileName YAML file name (e.g., browserstack-android.yml)
      * @return File object or null if not found
      */
-    private static java.io.File resolveConfigFile(String fileName) {
+    private static java.io.File findYamlFile(String fileName) {
         java.util.List<String> searchPaths = java.util.Arrays.asList(
             fileName,  // Current directory / project root
             "src/test/resources/" + fileName,
@@ -113,10 +104,10 @@ public class ConfigManager {
         for (String path : searchPaths) {
             java.io.File file = new java.io.File(path);
             if (file.exists()) {
-                logger.info("✓ Found config file at: {}", file.getAbsolutePath());
+                logger.info("✓ Found YAML at: {}", file.getAbsolutePath());
                 return file;
             } else {
-                logger.debug("✗ Config file not found at: {}", file.getAbsolutePath());
+                logger.debug("✗ YAML not found at: {}", file.getAbsolutePath());
             }
         }
         
@@ -124,8 +115,8 @@ public class ConfigManager {
     }
 
     /**
-     * Load configuration from YAML and export to System properties.
-     * Filters out app-path keys to prevent SDK auto-injection into bstack:options.
+     * Load configuration from YAML into memory only.
+     * No System property exports; values are read via getters.
      */
     private static void loadYamlConfig(String absolutePath) throws IOException {
         logger.info("Parsing YAML: {}", absolutePath);
@@ -138,51 +129,15 @@ public class ConfigManager {
         }
 
         logger.info("Loaded YAML with {} top-level keys", yamlMap.size());
-        
-        // Store complete raw YAML for complex structures (platforms, etc.)
+
+        // Store complete raw YAML only. No exporting to System properties.
+        rawYamlData.clear();
         rawYamlData.putAll(yamlMap);
-        
-        // Keys that should NOT be exported to system properties (SDK auto-injects these)
-        java.util.Set<String> excludeKeys = new java.util.HashSet<>();
-        excludeKeys.add("androidAppPath");
-        excludeKeys.add("iosAppPath");
-        excludeKeys.add("appPath");
-        excludeKeys.add("app");
-        excludeKeys.add("platforms");  // Platform list should only be accessed via getRawValue()
-        
-        // Export top-level keys (excluding SDK-sensitive ones)
-        yamlMap.forEach((k, v) -> {
-            if (v != null && !(v instanceof Map) && !(v instanceof java.util.List)) {
-                if (!excludeKeys.contains(k)) {
-                    System.setProperty(k, v.toString());
-                    properties.setProperty(k, v.toString());
-                }
-            }
-        });
-
-        // Export frameworkOptions specifically
-        if (yamlMap.containsKey("frameworkOptions")) {
-            Map<String, Object> options = (Map<String, Object>) yamlMap.get("frameworkOptions");
-            options.forEach((k, v) -> {
-                if (v != null) {
-                    System.setProperty(k, v.toString());
-                    properties.setProperty(k, v.toString());
-                }
-            });
-        }
     }
 
     /**
-     * Get current environment from system property or default.
-     */
-    public static String getEnvironment() {
-        ensureInitialized(); // Ensure initialization before accessing currentEnvironment
-        return currentEnvironment;
-    }
-
-    /**
-     * Get current platform from system property or config file.
-     * Priority: System property > config.properties > default
+     * Get current platform from system property or YAML config.
+     * Priority: BrowserStack SDK > System property > YAML > default
      */
     public static String getPlatform() {
         // 0. Check for BrowserStack SDK assigned platform (highest priority in forks)
@@ -196,9 +151,10 @@ public class ConfigManager {
         if (systemPlatform != null && !systemPlatform.isEmpty()) {
             return systemPlatform;
         }
-        // Then check config.properties
+        // Then check YAML configuration
         ensureInitialized();
-        String configPlatform = properties.getProperty(PLATFORM_KEY);
+        Object configPlatformObj = rawYamlData.get(PLATFORM_KEY);
+        String configPlatform = configPlatformObj != null ? configPlatformObj.toString() : null;
         if (configPlatform != null && !configPlatform.isEmpty()) {
             return configPlatform;
         }
@@ -214,7 +170,25 @@ public class ConfigManager {
      */
     public static String get(String key) {
         ensureInitialized();
-        return properties.getProperty(key);
+        // 1. System properties override
+        String sysValue = System.getProperty(key);
+        if (sysValue != null && !sysValue.isEmpty()) {
+            return sysValue;
+        }
+        // 2. Top-level YAML value
+        Object topLevel = rawYamlData.get(key);
+        if (topLevel != null && !(topLevel instanceof Map) && !(topLevel instanceof java.util.List)) {
+            return topLevel.toString();
+        }
+        // 3. frameworkOptions nested value
+        Object options = rawYamlData.get("frameworkOptions");
+        if (options instanceof Map) {
+            Object nested = ((Map<?, ?>) options).get(key);
+            if (nested != null) {
+                return nested.toString();
+            }
+        }
+        return null;
     }
 
     /**
@@ -225,19 +199,8 @@ public class ConfigManager {
      * @return Property value or default
      */
     public static String get(String key, String defaultValue) {
-        ensureInitialized();
-        return properties.getProperty(key, defaultValue);
-    }
-
-    /**
-     * Get an object locator property.
-     * 
-     * @param key Locator key
-     * @return Locator value or null
-     */
-    public static String getLocator(String key) {
-        ensureInitialized();
-        return objectProperties.getProperty(key);
+        String value = get(key);
+        return value != null ? value : defaultValue;
     }
 
     /**
@@ -289,8 +252,6 @@ public class ConfigManager {
      */
     public static synchronized void reload() {
         initialized = false;
-        properties.clear();
-        objectProperties.clear();
         rawYamlData.clear();
         init();
     }

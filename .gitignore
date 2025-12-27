@@ -44,7 +44,9 @@ drivers/
 
 # Mobile app binaries
 app/
-# BrowserStack local YAML files with secrets
+# BrowserStack local YAML files with secrets (dev only, use env vars in CI)
 browserstack-android.yml
-browserstack-ios.yml# Documentation files (local only)
+browserstack-ios.yml
+
+# Documentation files (local only)
 *.md

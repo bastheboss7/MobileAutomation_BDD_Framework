@@ -81,14 +81,13 @@ public class DriverFactory {
         UiAutomator2Options options = new UiAutomator2Options();
 
         String hubUrl = ConfigManager.get("hubUrl", ConfigManager.get("HUB", "http://127.0.0.1:4723"));
-        boolean isBSDK = System.getProperty("browserstack.sdk") != null || System.getenv("BROWSERSTACK_SDK") != null
-                || new java.io.File("browserstack.yml").exists();
         String env = ConfigManager.getEnvironment();
 
-        // SDK-only: If SDK agent is active and env targets BrowserStack, delegate to SDK
-        if (isBSDK && (env.contains("bs") || env.contains("browserstack"))) {
-            logger.info("SDK Mode (Android) - Delegating to SDK with BaseOptions");
-            AppiumDriver driver = new AndroidDriver(URI.create(hubUrl).toURL(), new BaseOptions<>());
+        // SDK Mode: When targeting BrowserStack, let the SDK handle server and capabilities
+        if (env != null && (env.toLowerCase().contains("bs") || env.toLowerCase().contains("browserstack"))) {
+            logger.info("SDK Mode (Android) - Creating AndroidDriver without server URL");
+            UiAutomator2Options sdkOptions = new UiAutomator2Options();
+            AppiumDriver driver = new AndroidDriver(sdkOptions);
             driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(ConfigManager.getInt("implicitWait", 30)));
             return driver;
         }
@@ -131,14 +130,13 @@ public class DriverFactory {
         XCUITestOptions options = new XCUITestOptions();
 
         String hubUrl = ConfigManager.get("hubUrl", ConfigManager.get("HUB", "http://127.0.0.1:4723"));
-        boolean isBSDK = System.getProperty("browserstack.sdk") != null || System.getenv("BROWSERSTACK_SDK") != null
-                || new java.io.File("browserstack.yml").exists();
         String env = ConfigManager.getEnvironment();
 
-        // SDK-only for BrowserStack
-        if (isBSDK && (env.contains("bs") || env.contains("browserstack"))) {
-            logger.info("SDK Mode (iOS) - Delegating to SDK with BaseOptions");
-            AppiumDriver driver = new io.appium.java_client.ios.IOSDriver(URI.create(hubUrl).toURL(), new BaseOptions<>());
+        // SDK Mode for BrowserStack
+        if (env != null && (env.toLowerCase().contains("bs") || env.toLowerCase().contains("browserstack"))) {
+            logger.info("SDK Mode (iOS) - Creating IOSDriver without server URL");
+            XCUITestOptions sdkOptions = new XCUITestOptions();
+            AppiumDriver driver = new io.appium.java_client.ios.IOSDriver(sdkOptions);
             driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(ConfigManager.getInt("implicitWait", 30)));
             return driver;
         }

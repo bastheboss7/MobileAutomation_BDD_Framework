@@ -63,16 +63,20 @@ public class ConfigManager {
             }
         }
 
-        java.io.File configFile = new java.io.File(configFileName);
+        // Search for config file in multiple locations
+        java.io.File configFile = resolveConfigFile(configFileName);
+        
+        if (configFile == null) {
+            logger.error("CRITICAL: Could not find configuration file {} in any search path", configFileName);
+            logger.error("Searched locations: project root, src/test/resources/, target/test-classes/");
+            throw new RuntimeException("Configuration file not found: " + configFileName);
+        }
+        
         logger.info("Loading configuration from: {} (Absolute: {})", configFileName, configFile.getAbsolutePath());
         try {
-            if (configFile.exists()) {
-                loadYamlConfig(configFileName);
-            } else {
-                logger.warn("YAML configuration {} not found at {}", configFileName, configFile.getAbsolutePath());
-            }
+            loadYamlConfig(configFile.getAbsolutePath());
         } catch (Exception e) {
-            logger.error("CRITICAL: Failed to load YAML configuration: {}", configFileName, e);
+            logger.error("CRITICAL: Failed to load YAML configuration: {}", configFile.getAbsolutePath(), e);
             throw new RuntimeException("Failed to load YAML configuration", e);
         }
 
@@ -90,16 +94,46 @@ public class ConfigManager {
     }
 
     /**
+     * Resolve configuration file from multiple search locations.
+     * Priority:
+     * 1. Project root (for development)
+     * 2. src/test/resources/ (for Maven test phase)
+     * 3. target/test-classes/ (for compiled tests)
+     * 
+     * @param fileName Config file name (e.g., browserstack-android.yml)
+     * @return File object or null if not found
+     */
+    private static java.io.File resolveConfigFile(String fileName) {
+        java.util.List<String> searchPaths = java.util.Arrays.asList(
+            fileName,  // Current directory / project root
+            "src/test/resources/" + fileName,
+            "target/test-classes/" + fileName
+        );
+        
+        for (String path : searchPaths) {
+            java.io.File file = new java.io.File(path);
+            if (file.exists()) {
+                logger.info("✓ Found config file at: {}", file.getAbsolutePath());
+                return file;
+            } else {
+                logger.debug("✗ Config file not found at: {}", file.getAbsolutePath());
+            }
+        }
+        
+        return null;
+    }
+
+    /**
      * Load configuration from YAML and export to System properties.
      * Filters out app-path keys to prevent SDK auto-injection into bstack:options.
      */
-    private static void loadYamlConfig(String path) throws IOException {
-        logger.info("Parsing YAML: {}", path);
+    private static void loadYamlConfig(String absolutePath) throws IOException {
+        logger.info("Parsing YAML: {}", absolutePath);
         com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.dataformat.yaml.YAMLMapper();
-        Map<String, Object> yamlMap = mapper.readValue(new java.io.File(path), Map.class);
+        Map<String, Object> yamlMap = mapper.readValue(new java.io.File(absolutePath), Map.class);
 
         if (yamlMap == null || yamlMap.isEmpty()) {
-            logger.warn("YAML map is empty for: {}", path);
+            logger.warn("YAML map is empty for: {}", absolutePath);
             return;
         }
 

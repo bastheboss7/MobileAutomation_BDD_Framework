@@ -197,14 +197,21 @@ public class DriverFactory {
     /**
      * Load BrowserStack capabilities from YAML configuration.
      * Applies app, source, debug, and other settings to the options.
+     * Throws IllegalStateException if required capabilities are missing.
      */
     private static void loadBrowserStackCapabilities(BaseOptions<?> options) {
-        // Load app reference from YAML
-        String app = ConfigManager.get("app");
-        if (app != null && !app.isBlank()) {
-            logger.debug("Setting app from YAML: {}", app);
-            options.setCapability("app", app);
+        logger.info("Loading BrowserStack capabilities from YAML...");
+        
+        // Load app reference from YAML (REQUIRED for BrowserStack)
+        // Note: 'app' is excluded from properties, must access from rawYamlData
+        Object appObj = ConfigManager.getRawValue("app");
+        String app = appObj != null ? appObj.toString() : null;
+        
+        if (app == null || app.isBlank()) {
+            throw new IllegalStateException("CRITICAL: 'app' capability is missing from YAML. BrowserStack requires an app reference (e.g., bs://... or app/path/to/app.ipa)");
         }
+        logger.info("✓ Setting app from YAML: {}", app);
+        options.setCapability("app", app);
         
         // Load source agent (if configured)
         String source = ConfigManager.get("source");
@@ -242,5 +249,5 @@ public class DriverFactory {
             options.setCapability("browserstackLocal", true);
         }
         
-        logger.info("BrowserStack capabilities loaded from YAML");
+        logger.info("✓ BrowserStack capabilities successfully loaded from YAML");
     }}

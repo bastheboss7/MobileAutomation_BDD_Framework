@@ -111,6 +111,23 @@ jobs:
             echo "filter=$TAG_INPUT" >> $GITHUB_OUTPUT
           fi
       
+      - name: Debug - Verify Configuration Files
+        run: |
+          echo "=== Configuration File Debug ==="
+          echo "Working Directory: $(pwd)"
+          echo ""
+          echo "=== Root Level Files ==="
+          ls -la browserstack-*.yml* 2>/dev/null || echo "No browserstack files in root"
+          echo ""
+          echo "=== src/test/resources/ ==="
+          ls -la src/test/resources/browserstack-*.yml* 2>/dev/null || echo "No files in src/test/resources"
+          echo ""
+          echo "=== target/test-classes/ ==="
+          ls -la target/test-classes/browserstack-*.yml* 2>/dev/null || echo "No files in target/test-classes (will exist after compilation)"
+          echo ""
+          echo "=== Full Directory Tree (first 20 lines) ==="
+          ls -R | head -30
+      
       - name: Run Android SDK Tests
         env:
           BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
@@ -192,6 +209,20 @@ jobs:
           else
             echo "filter=$TAG_INPUT" >> $GITHUB_OUTPUT
           fi
+      
+      - name: Debug - Verify Configuration Files
+        run: |
+          echo "=== Configuration File Debug (iOS) ==="
+          echo "Working Directory: $(pwd)"
+          echo ""
+          echo "=== Root Level Files ==="
+          ls -la browserstack-*.yml* 2>/dev/null || echo "No browserstack files in root"
+          echo ""
+          echo "=== src/test/resources/ ==="
+          ls -la src/test/resources/browserstack-*.yml* 2>/dev/null || echo "No files in src/test/resources"
+          echo ""
+          echo "=== target/test-classes/ ==="
+          ls -la target/test-classes/browserstack-*.yml* 2>/dev/null || echo "No files in target/test-classes (will exist after compilation)"
       
       - name: Run iOS SDK Tests
         env:

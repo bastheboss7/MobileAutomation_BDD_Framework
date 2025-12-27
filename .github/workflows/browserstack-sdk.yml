@@ -1,5 +1,12 @@
 name: BrowserStack SDK Tests
 
+# ============================================================================
+# WORKFLOW TRIGGERS
+# ============================================================================
+# This workflow is triggered by:
+# 1. Push events to main/develop/appiumMobile branches
+# 2. Pull requests to main/develop
+# 3. Manual dispatch (workflow_dispatch) with custom platform/tag selections
 on:
   push:
     branches:
@@ -10,7 +17,14 @@ on:
     branches:
       - main
       - develop
+  schedule:
+    # Runs daily at 3:00 AM UTC
+    # Use https://crontab.guru to adjust timing
+    # 0 3 * * * = Every day at 3:00 AM
+    - cron: '0 3 * * *'
   workflow_dispatch:
+    # Allows manual triggering from GitHub UI with custom inputs
+    # Usage: Actions tab → Run Workflow → Select platform and tags
     inputs:
       platform:
         description: 'Platform to test'
@@ -35,13 +49,16 @@ on:
           - 'custom'
 
 env:
-  JAVA_VERSION: '21'
-  MAVEN_OPTS: '-Xmx1024m'
+  # Global environment variables for all jobs
+  JAVA_VERSION: '21'  # Java version for compilation and test execution
+  MAVEN_OPTS: '-Xmx1024m'  # Maven heap memory (for iOS stability)
 
 jobs:
   # ============================================================================
   # Build & Validate
   # ============================================================================
+  # Purpose: Compile and validate the project before running tests
+  # This job runs first and other jobs depend on it (needs: build)
   build:
     name: Build & Validate
     runs-on: ubuntu-latest
@@ -63,6 +80,7 @@ jobs:
       - name: Cache Maven packages
         uses: actions/cache@v4
         with:
+          # Caches ~/.m2/repository to speed up subsequent builds
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
@@ -71,6 +89,9 @@ jobs:
   # ============================================================================
   # Android SDK Tests
   # ============================================================================
+  # Purpose: Run Android tests on BrowserStack cloud
+  # Trigger Condition: Runs if platform is 'android' or 'both'
+  # Dependency: Waits for 'build' job to complete (needs: build)
   test-android-sdk:
     name: Android SDK Tests (BrowserStack)
     runs-on: ubuntu-latest
@@ -111,28 +132,17 @@ jobs:
             echo "filter=$TAG_INPUT" >> $GITHUB_OUTPUT
           fi
       
-      - name: Debug - Verify Configuration Files
-        run: |
-          echo "=== Configuration File Debug ==="
-          echo "Working Directory: $(pwd)"
-          echo ""
-          echo "=== Root Level Files ==="
-          ls -la browserstack-*.yml* 2>/dev/null || echo "No browserstack files in root"
-          echo ""
-          echo "=== src/test/resources/ ==="
-          ls -la src/test/resources/browserstack-*.yml* 2>/dev/null || echo "No files in src/test/resources"
-          echo ""
-          echo "=== target/test-classes/ ==="
-          ls -la target/test-classes/browserstack-*.yml* 2>/dev/null || echo "No files in target/test-classes (will exist after compilation)"
-          echo ""
-          echo "=== Full Directory Tree (first 20 lines) ==="
-          ls -R | head -30
-      
       - name: Run Android SDK Tests
         env:
           BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
           BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
         run: |
+          # Maven command structure:
+          # -Pbrowserstack: Activates BrowserStack profile (adds SDK agent)
+          # -Dbrowserstack.config: Specifies YAML config file with app ID and device list
+          # -Dplatform=android: Sets platform for DriverFactory
+          # -Denv=browserstack: Triggers ConfigManager to use BrowserStack mode
+          # -Dcucumber.filter.tags: Applies tag filters (@androidOnly, @smoke, etc.)
           mvn clean test \
             -Pbrowserstack \
             -Dbrowserstack.config=browserstack-android-ci.yml \
@@ -143,6 +153,9 @@ jobs:
             -q
       
       - name: Upload Test Reports
+        # Uploads test artifacts (Extent Reports, SureFire reports, Cucumber HTML)
+        # Runs even if tests fail (if: always())
+        # Retention: 30 days
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -171,6 +184,10 @@ jobs:
   # ============================================================================
   # iOS SDK Tests
   # ============================================================================
+  # Purpose: Run iOS tests on BrowserStack cloud
+  # Trigger Condition: Runs if platform is 'ios' or 'both' OR automatic push triggers
+  # Dependency: Waits for 'build' job to complete (needs: build)
+  # Note: if condition includes automatic triggers for push events
   test-ios-sdk:
     name: iOS SDK Tests (BrowserStack)
     runs-on: ubuntu-latest
@@ -210,25 +227,13 @@ jobs:
             echo "filter=$TAG_INPUT" >> $GITHUB_OUTPUT
           fi
       
-      - name: Debug - Verify Configuration Files
-        run: |
-          echo "=== Configuration File Debug (iOS) ==="
-          echo "Working Directory: $(pwd)"
-          echo ""
-          echo "=== Root Level Files ==="
-          ls -la browserstack-*.yml* 2>/dev/null || echo "No browserstack files in root"
-          echo ""
-          echo "=== src/test/resources/ ==="
-          ls -la src/test/resources/browserstack-*.yml* 2>/dev/null || echo "No files in src/test/resources"
-          echo ""
-          echo "=== target/test-classes/ ==="
-          ls -la target/test-classes/browserstack-*.yml* 2>/dev/null || echo "No files in target/test-classes (will exist after compilation)"
-      
       - name: Run iOS SDK Tests
         env:
           BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
           BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
         run: |
+          # Same Maven structure as Android, but with iOS-specific config
+          # browserstack-ios-ci.yml contains: iOS devices, automationName: XCUITest, app ID
           mvn clean test \
             -Pbrowserstack \
             -Dbrowserstack.config=browserstack-ios-ci.yml \
@@ -239,6 +244,7 @@ jobs:
             -q
       
       - name: Upload Test Reports
+        # Same as Android: uploads all test artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -250,6 +256,7 @@ jobs:
           retention-days: 30
       
       - name: Upload Logs
+        # Uploads logs only if tests failed (if: failure())
         if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -258,6 +265,8 @@ jobs:
           retention-days: 7
       
       - name: Publish Test Results
+        # Parses TestNG XML reports and publishes results to GitHub
+        # Creates a check run in the workflow summary
         if: always()
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
@@ -267,19 +276,24 @@ jobs:
   # ============================================================================
   # Summary Report
   # ============================================================================
+  # Purpose: Display final test summary in workflow UI
+  # Runs after all test jobs (both Android and iOS) complete
   summary:
     name: Test Summary
     runs-on: ubuntu-latest
     needs: [test-android-sdk, test-ios-sdk]
-    if: always()
+    if: always()  # Runs regardless of test results to always show summary
     
     steps:
       - name: Download all artifacts
+        # Collects all uploaded artifacts (reports, logs) from previous jobs
         uses: actions/download-artifact@v4
         with:
           path: reports
       
       - name: Generate Summary
+        # Creates a summary markdown output visible in workflow UI
+        # Shows test results, branch info, and links to artifacts
         run: |
           echo "## 📊 Test Execution Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -295,6 +309,7 @@ jobs:
           echo "View detailed reports in artifacts section." >> $GITHUB_STEP_SUMMARY
       
       - name: Check overall status
+        # Fails the workflow if any test job failed
         run: |
           if [ "${{ needs.test-android-sdk.result }}" == "failure" ] || [ "${{ needs.test-ios-sdk.result }}" == "failure" ]; then
             echo "::error::One or more test jobs failed"

@@ -36,7 +36,7 @@ jobs:
             -Pbrowserstack \
             -Dplatform=ios \
             -Denv=browserstack \
-            -Dcucumber.filter.tags="@BStackSample" \
+            -Dcucumber.filter.tags="@iosOnly" \
             --no-transfer-progress
 
       - name: Upload test reports

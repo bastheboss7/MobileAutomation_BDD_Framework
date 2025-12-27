@@ -30,11 +30,6 @@ src/
 │
 ├── main/resources/
 │   ├── config.properties                   # Base configuration
-│   ├── local/
-│   │   ├── android/
-│   │   │   └── local-android-config.properties # Local Android overrides
-│   │   └── ios/
-│   │       └── local-ios-config.properties     # Local iOS overrides
 │   ├── browserstack/
 │   │   └── config-*.properties             # BrowserStack environment overrides
 │   └── logback.xml                         # Logging configuration
@@ -560,75 +555,7 @@ appium driver install xcuitest       # iOS
 
 ### Running Tests
 
-```bash
-# Local Android Test
-mvn clean test -Pandroid -Denv=local
-
-# Local iOS Test
-mvn clean test -Pios -Denv=local
-
-# Run specific tags locally
-mvn clean test -Pandroid -Denv=local -Dcucumber.filter.tags="@MyTag"
-```
-
-### 🧪 Local Android (Emulator) Run
-
-Use the local YAML [local-android.yml](local-android.yml) and run on an emulator.
-
-**Prerequisites:**
-- Android SDK + AVD created (e.g., `Pixel_6_API_33`)
-- Appium 2.x installed
-
-**Quick start:**
-```bash
-# 1) Start emulator (headless by default)
-./scripts/start-emulator.sh Pixel_6_API_33
-
-# 2) Start Appium
-./scripts/start-appium.sh 4723
-
-# 3) Run local Android tests (uses local-android.yml)
-mvn clean test -Pandroid -Denv=local -Dcucumber.filter.tags="@Login and not @Skip"
-```
-
-**Local config values** come from [local-android.yml](local-android.yml):
-- `deviceName: emulator-5554`
-- `platformVersion: 12`
-- `appPath: ./app/local/android/android.wdio.native.app.v1.0.8.apk`
-- `HUB: http://127.0.0.1:4723`
-
-**Tips:**
-- Verify emulator device with `adb devices`.
-- If your AVD name differs, pass it to the script: `./scripts/start-emulator.sh <YourAVDName>`.
-- If you use a different local port, update `HUB` in [local-android.yml](local-android.yml).
-
-### 🧪 Local iOS (Simulator) Run
-
-Use the local YAML [local-ios.yml](local-ios.yml) and run on a simulator.
-
-**Prerequisites:**
-- Xcode installed with iOS Simulator
-- Appium 2.x installed
-- XCUITest driver: `appium driver install xcuitest`
-
-**Quick start:**
-```bash
-# 1) Start Appium
-./scripts/start-appium.sh 4723
-
-# 2) Run local iOS tests (uses local-ios.yml)
-mvn clean test -Pios -Denv=local -Dcucumber.filter.tags="@Login and not @Skip"
-```
-
-**Local config values** come from [local-ios.yml](local-ios.yml):
-- `deviceName: iPhone 14`
-- `platformVersion: 16.0`
-- `appPath: ./app/local/ios/wdiodemoapp.app`
-- `HUB: http://127.0.0.1:4723`
-
-**Tips:**
-- List available simulators: `xcrun simctl list devices available`
-- If your simulator differs, update `deviceName` and `platformVersion` in [local-ios.yml](local-ios.yml).
+All tests run on BrowserStack using the SDK agent. See the BrowserStack section below for detailed instructions.
 
 ---
 
@@ -743,5 +670,204 @@ Scenario: Shared flow (both platforms)
 ```
 
 **Always validate your feature file tags match your `-Dcucumber.filter.tags` parameter before running tests.**
+
+---
+
+## 🔄 CI/CD with GitHub Actions
+
+The framework includes comprehensive GitHub Actions workflows for automated testing in CI/CD pipelines.
+
+### Available Workflows
+
+#### 1. **BrowserStack SDK Tests** ([browserstack-sdk.yml](.github/workflows/browserstack-sdk.yml))
+Automated BrowserStack testing using SDK agent for both Android and iOS.
+
+**Triggers:**
+- Push to `main`, `develop`, `appiumMobile` branches
+- Pull requests to `main`, `develop`
+- Manual dispatch with platform selection
+
+**Jobs:**
+- ✅ Build & Validate
+- 🤖 Android SDK Tests (parallel across 3 devices)
+- 🍎 iOS SDK Tests (parallel across 3 devices)
+- 📊 Test Summary & Report Generation
+
+**Manual Trigger:**
+```bash
+# Via GitHub UI: Actions tab → BrowserStack SDK Tests → Run workflow
+# Select platform: android | ios | both
+# Optional: Custom Cucumber tags (defaults: @androidOnly, @iosOnly)
+```
+
+**Required Secrets:**
+```bash
+BROWSERSTACK_USERNAME=<your-browserstack-username>
+BROWSERSTACK_ACCESS_KEY=<your-browserstack-access-key>
+```
+
+#### 2. **iOS SDK Tests** ([sdk-ios-ci.yml](.github/workflows/sdk-ios-ci.yml))
+Dedicated iOS SDK testing workflow (legacy/backward compatibility).
+
+**Triggers:**
+- Push to `appiumMobile`, `main`, `develop` branches
+- Pull requests to `appiumMobile`, `main`
+
+**Jobs:**
+- 🍎 Run iOS SDK Tests on BrowserStack
+- 📊 Upload test reports
+- ✅ Publish test results
+
+### Setting Up GitHub Actions
+
+#### Step 1: Add BrowserStack Secrets
+1. Go to **Settings** → **Secrets and variables** → **Actions**
+2. Add repository secrets:
+   - `BROWSERSTACK_USERNAME`: Your BrowserStack username
+   - `BROWSERSTACK_ACCESS_KEY`: Your BrowserStack access key
+
+#### Step 2: Enable Workflows
+Workflows are automatically enabled after pushing to the repository. Verify:
+```bash
+git push origin appiumMobile
+```
+
+#### Step 3: Monitor Execution
+- Navigate to **Actions** tab in GitHub
+- View real-time logs for each job
+- Download artifacts (test reports, logs) after completion
+
+### Workflow Configuration Examples
+
+#### Example 1: Android SDK Tests Only
+```yaml
+# Triggered automatically on push/PR
+# Or manually with platform selection
+jobs:
+  test-android-sdk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run Android SDK Tests
+        env:
+          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+        run: |
+          mvn clean test \
+            -Pbrowserstack \
+            -Dplatform=android \
+            -Denv=browserstack \
+            -Dcucumber.filter.tags="@androidOnly"
+```
+
+#### Example 2: Custom Tags for Smoke Tests
+```yaml
+# Manual workflow dispatch with custom tags
+workflow_dispatch:
+  inputs:
+    tags:
+      description: 'Cucumber tags filter'
+      default: '@Smoke'
+
+# Usage in job:
+-Dcucumber.filter.tags="${{ github.event.inputs.tags }}"
+```
+
+#### Example 3: Parallel Platform Testing
+```yaml
+# Both platforms run in parallel (independent jobs)
+jobs:
+  test-android-sdk:
+    runs-on: ubuntu-latest
+    # Android tests run independently
+  
+  test-ios-sdk:
+    runs-on: ubuntu-latest
+    # iOS tests run independently (no dependency on Android)
+```
+
+### Test Reports & Artifacts
+
+All workflows upload test reports as artifacts:
+
+**Artifact Types:**
+- 📊 **Extent Reports**: HTML reports with screenshots and step details
+- 📋 **Surefire Reports**: XML test results for GitHub UI integration
+- 📝 **Cucumber Reports**: JSON reports for trend analysis
+- 🔍 **Logs**: Debug logs (uploaded only on failure)
+
+**Accessing Artifacts:**
+1. Go to **Actions** → Select workflow run
+2. Scroll to **Artifacts** section at the bottom
+3. Download zip files (e.g., `android-sdk-reports.zip`)
+4. Extract and open `extent-reports/ExtentReport.html`
+
+**Artifact Retention:**
+- Test reports: 30 days
+- Debug logs: 7 days
+
+### Best Practices for CI/CD
+
+1. **Branch Protection Rules:**
+   ```yaml
+   # Require BrowserStack SDK tests to pass before merging
+   Settings → Branches → main → Require status checks:
+   - Android SDK Test Results ✅
+   - iOS SDK Test Results ✅
+   ```
+
+2. **Scheduled Runs:**
+   ```yaml
+   # Add to workflow for nightly regression
+   on:
+     schedule:
+       - cron: '0 2 * * *'  # 2 AM UTC daily
+   ```
+
+3. **Slack Notifications:**
+   ```yaml
+   # Add step to notify on failure
+   - name: Notify Slack
+     if: failure()
+     uses: slackapi/slack-github-action@v1
+     with:
+       webhook-url: ${{ secrets.SLACK_WEBHOOK }}
+   ```
+
+4. **Dependency Caching:**
+   ```yaml
+   # Already configured in workflows
+   - uses: actions/cache@v4
+     with:
+       path: ~/.m2/repository
+       key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+   ```
+
+5. **Matrix Strategy for Multiple Environments:**
+   ```yaml
+   strategy:
+     matrix:
+       environment: [staging, production]
+       platform: [android, ios]
+   # Runs 4 jobs: staging-android, staging-ios, prod-android, prod-ios
+   ```
+
+### Troubleshooting CI/CD Issues
+
+| Issue | Solution |
+|-------|----------|
+| **BrowserStack credentials error** | Verify secrets are added: `BROWSERSTACK_USERNAME`, `BROWSERSTACK_ACCESS_KEY` |
+| **No tests executed** | Check Cucumber tag filter matches feature file tags (case-sensitive) |
+| **Maven dependency timeout** | Enable dependency caching; increase `MAVEN_OPTS` memory |
+| **iOS Simulator boot failure** | Use `macos-13` runner (has Xcode 14); `macos-latest` may vary |
+| **Parallel execution conflicts** | Ensure proper port management in DriverFactory (already configured) |
+| **Artifact upload size limit** | Compress large reports; reduce screenshot size in Extent config |
+
+### Workflow Status Badges
+
+Add status badges to README:
+```markdown
+[![BrowserStack SDK Tests](https://github.com/<owner>/<repo>/actions/workflows/browserstack-sdk.yml/badge.svg)](https://github.com/<owner>/<repo>/actions/workflows/browserstack-sdk.yml)
+[![iOS SDK Tests](https://github.com/<owner>/<repo>/actions/workflows/sdk-ios-ci.yml/badge.svg)](https://github.com/<owner>/<repo>/actions/workflows/sdk-ios-ci.yml)
+```
 
 

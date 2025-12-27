@@ -68,24 +68,7 @@ public class ConfigManager {
         try {
             if (configFile.exists()) {
                 loadYamlConfig(configFileName);
-            }
-
-            // Load companion framework file if exists (BS environments use platform-specific companion)
-            String frameworkCompanion;
-            if (currentEnvironment.contains("bs") || currentEnvironment.contains("browserstack")) {
-                // Use framework-bs-<platform>.yml when running on BrowserStack
-                frameworkCompanion = "framework-bs-" + (platform.contains("ios") ? "ios" : "android") + ".yml";
             } else {
-                // Default companion naming for local envs: framework-<env>.yml
-                frameworkCompanion = "framework-" + currentEnvironment + ".yml";
-            }
-
-            java.io.File companionFile = new java.io.File(frameworkCompanion);
-            if (companionFile.exists()) {
-                logger.info("Loading companion framework configuration: {} - Path: {}", frameworkCompanion,
-                        companionFile.getAbsolutePath());
-                loadYamlConfig(frameworkCompanion);
-            } else if (!configFile.exists()) {
                 logger.warn("YAML configuration {} not found at {}", configFileName, configFile.getAbsolutePath());
             }
         } catch (Exception e) {
@@ -93,7 +76,7 @@ public class ConfigManager {
             throw new RuntimeException("Failed to load YAML configuration", e);
         }
 
-        // Bridge platform for BrowserStack SDK if active
+        // Enforce BrowserStack SDK mode for BrowserStack environments
         if (currentEnvironment.contains("bs") || currentEnvironment.contains("browserstack")) {
             System.setProperty("browserstack.sdk", "true");
         }

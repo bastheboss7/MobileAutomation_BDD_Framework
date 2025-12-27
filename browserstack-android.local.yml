@@ -1,0 +1,29 @@
+# Local-only BrowserStack config (ignored by git)
+# Use hardcoded creds only for local dev; never commit.
+userName: aishwaryalakshmi_flVCjb
+accessKey: RsRLTRVEKShpDovu5sgb
+
+# App to be tested (absolute local path)
+app: /Users/baskarp/MobileAutomation_BDD_Framework/app/browserstack/android/android.wdio.native.app.v1.0.8.apk
+
+# Disable SDK for local verification; use Standard Mode upload
+useSDK: false
+
+# BrowserStack hub URL for Standard Mode
+hubUrl: https://hub-cloud.browserstack.com/wd/hub
+
+
+platforms:
+  - deviceName: Samsung Galaxy S23 Ultra
+    osVersion: 13.0
+    platformName: android
+
+parallelsPerPlatform: 1
+
+source: java:appium-intellij:2.0.0-IC
+browserstackLocal: true
+debug: true
+networkLogs: true
+appiumLogs: true
+deviceLogs: true
+consoleLogs: errors

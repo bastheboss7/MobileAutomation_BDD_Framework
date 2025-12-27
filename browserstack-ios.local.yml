@@ -1,0 +1,20 @@
+# Local-only BrowserStack config (ignored by git)
+# Use hardcoded creds only for local dev; never commit.
+userName: aishwaryalakshmi_flVCjb
+accessKey: RsRLTRVEKShpDovu5sgb
+
+# App to be tested (local path)
+app: app/browserstack/ios/BStackSampleApp.ipa
+
+platforms:
+  - deviceName: iPhone 14 Pro Max
+    osVersion: 16
+    platformName: ios
+
+parallelsPerPlatform: 1
+
+source: java:appium-intellij:2.0.0-IC
+browserstackLocal: true
+debug: true
+networkLogs: true
+consoleLogs: errors

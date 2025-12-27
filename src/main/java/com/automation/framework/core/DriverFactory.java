@@ -213,6 +213,13 @@ public class DriverFactory {
         logger.info("✓ Setting app from YAML: {}", app);
         options.setCapability("app", app);
         
+        // Load automationName if configured (especially important for iOS - must be XCUITest)
+        String automationName = ConfigManager.get("automationName");
+        if (automationName != null && !automationName.isBlank()) {
+            logger.info("✓ Setting automationName: {}", automationName);
+            options.setCapability("automationName", automationName);
+        }
+        
         // Load source agent (if configured)
         String source = ConfigManager.get("source");
         if (source != null && !source.isBlank()) {

@@ -1,9 +1,13 @@
 userName: ${BROWSERSTACK_USERNAME}
 accessKey: ${BROWSERSTACK_ACCESS_KEY}
 
-# Use BrowserStack-hosted app reference (same sample app works for both iOS and Android)
-# For local testing, override with: -Dbrowserstack.config=browserstack-ios.yml (with local path)
-app: bs://02d88594d8c7d0ba4cecde791474bbb7cba23f73
+# iOS app MUST be uploaded separately from Android
+# Upload iOS app: curl -u "username:accessKey" -X POST https://api-cloud.browserstack.com/app-upload -F "file=@BStackSampleApp.ipa"
+# TODO: Replace with your iOS app ID from BrowserStack upload
+app: bs://YOUR_IOS_APP_ID_HERE
+
+# iOS-specific automation settings (REQUIRED for iOS)
+automationName: XCUITest
 
 platforms:
   - deviceName: iPhone 14 Pro Max

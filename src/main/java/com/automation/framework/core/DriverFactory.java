@@ -81,15 +81,12 @@ public class DriverFactory {
         UiAutomator2Options options = new UiAutomator2Options();
 
         String hubUrl = ConfigManager.get("hubUrl", ConfigManager.get("HUB", "http://127.0.0.1:4723"));
-        boolean isBrowserStack = BrowserStackCapabilityBuilder.isBrowserStackHub(hubUrl);
         boolean isBSDK = System.getProperty("browserstack.sdk") != null || System.getenv("BROWSERSTACK_SDK") != null
                 || new java.io.File("browserstack.yml").exists();
+        String env = ConfigManager.getEnvironment();
 
-        // SDK-only: Delegate BrowserStack execution to SDK agent
-        if (isBrowserStack) {
-            if (!isBSDK) {
-                throw new IllegalStateException("BrowserStack SDK agent is not active. Enable Maven profile 'browserstack' or set browserstack.sdk=true.");
-            }
+        // SDK-only: If SDK agent is active and env targets BrowserStack, delegate to SDK
+        if (isBSDK && (env.contains("bs") || env.contains("browserstack"))) {
             logger.info("SDK Mode (Android) - Delegating to SDK with BaseOptions");
             AppiumDriver driver = new AndroidDriver(URI.create(hubUrl).toURL(), new BaseOptions<>());
             driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(ConfigManager.getInt("implicitWait", 30)));
@@ -106,10 +103,19 @@ public class DriverFactory {
         options.setNoReset(ConfigManager.getBoolean("noReset", false));
         options.setNewCommandTimeout(Duration.ofSeconds(ConfigManager.getInt("newCommandTimeout", 6000)));
 
-        options.setSystemPort(androidPortCounter.getAndIncrement());
+        int systemPort = androidPortCounter.getAndIncrement();
+        if (systemPort > 8299) {
+            androidPortCounter.set(8200);
+            systemPort = androidPortCounter.getAndIncrement();
+        }
+        options.setSystemPort(systemPort);
         String appPath = ConfigManager.get("androidAppPath");
-        if (appPath == null)
+        if (appPath == null) {
             appPath = ConfigManager.get("appPath");
+        }
+        if (appPath == null || appPath.isBlank()) {
+            throw new IllegalStateException("Local Android app path is missing. Set 'androidAppPath' or 'appPath' in config.");
+        }
         options.setApp(System.getProperty("user.dir") + "/" + appPath);
 
         logger.info("Creating AndroidDriver (Local) with options: {}", options.asMap());
@@ -125,15 +131,12 @@ public class DriverFactory {
         XCUITestOptions options = new XCUITestOptions();
 
         String hubUrl = ConfigManager.get("hubUrl", ConfigManager.get("HUB", "http://127.0.0.1:4723"));
-        boolean isBrowserStack = BrowserStackCapabilityBuilder.isBrowserStackHub(hubUrl);
         boolean isBSDK = System.getProperty("browserstack.sdk") != null || System.getenv("BROWSERSTACK_SDK") != null
                 || new java.io.File("browserstack.yml").exists();
+        String env = ConfigManager.getEnvironment();
 
         // SDK-only for BrowserStack
-        if (isBrowserStack) {
-            if (!isBSDK) {
-                throw new IllegalStateException("BrowserStack SDK agent is not active. Enable Maven profile 'browserstack' or set browserstack.sdk=true.");
-            }
+        if (isBSDK && (env.contains("bs") || env.contains("browserstack"))) {
             logger.info("SDK Mode (iOS) - Delegating to SDK with BaseOptions");
             AppiumDriver driver = new io.appium.java_client.ios.IOSDriver(URI.create(hubUrl).toURL(), new BaseOptions<>());
             driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(ConfigManager.getInt("implicitWait", 30)));
@@ -151,10 +154,19 @@ public class DriverFactory {
         options.setUdid(ConfigManager.get("iosUdid"));
         options.setNewCommandTimeout(Duration.ofSeconds(ConfigManager.getInt("newCommandTimeout", 6000)));
 
-        options.setWdaLocalPort(wdaPortCounter.getAndIncrement());
+        int wdaPort = wdaPortCounter.getAndIncrement();
+        if (wdaPort > 8199) {
+            wdaPortCounter.set(8100);
+            wdaPort = wdaPortCounter.getAndIncrement();
+        }
+        options.setWdaLocalPort(wdaPort);
         String appPath = ConfigManager.get("iosAppPath");
-        if (appPath == null)
+        if (appPath == null) {
             appPath = ConfigManager.get("appPath");
+        }
+        if (appPath == null || appPath.isBlank()) {
+            throw new IllegalStateException("Local iOS app path is missing. Set 'iosAppPath' or 'appPath' in config.");
+        }
         options.setApp(System.getProperty("user.dir") + "/" + appPath);
 
         AppiumDriver driver = new io.appium.java_client.ios.IOSDriver(URI.create(hubUrl).toURL(), options);

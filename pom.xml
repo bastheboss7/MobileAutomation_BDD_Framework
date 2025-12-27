@@ -126,11 +126,11 @@
 			<version>2.16.1</version>
 		</dependency>
 		
-		<!-- BrowserStack Java SDK -->
+		<!-- BrowserStack Java SDK (pin version to avoid LATEST drift) -->
 		<dependency>
 			<groupId>com.browserstack</groupId>
 			<artifactId>browserstack-java-sdk</artifactId>
-			<version>LATEST</version>
+			<version>1.27.0</version>
 			<scope>compile</scope>
 		</dependency>
 		

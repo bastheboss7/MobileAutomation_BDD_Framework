@@ -7,7 +7,7 @@
 - `browserstack.local` support removed; only cloud device runs.
 - Waits configured via system property `implicitWait` or defaults; YAML does not include waits.
 
-## 🚀 What’s new (Dec 2025)
+
 ## 🧪 Test Execution
 - Default TestNG suite: `testngSuite.xml` (renamed from testngParallel.xml)
 - Android (tag filter required):
@@ -33,8 +33,14 @@ mvn clean test \
 - Credentials via environment variables (`BROWSERSTACK_USERNAME`, `BROWSERSTACK_ACCESS_KEY`) or YAML (`userName`, `accessKey`).
 - Select platform via `-Dplatform=android|ios` (default android). BrowserStack SDK reads platforms list from YAML.
 - YAML lives at repo root; SDK injects capabilities directly. No config.properties files.
-- Waits: configure via system property `implicitWait` or code defaults; do not include waits in YAML.
+- Waits: Configure via system property `-DimplicitWait=10` or rely on BasePage defaults (10 seconds). **Do NOT include `frameworkOptions` in YAML** (unsupported by BrowserStack SDK).
 - `browserstack.local` is not used.
+
+## 📁 Project Structure
+
+```
+├── main/java/
+│   └── com/automation/framework/
 │       ├── pages/
 │       │   ├── BasePage.java               # Base class with waits/helpers
 ### Running Parallel Tests
@@ -49,50 +55,10 @@ mvn clean test \
 ```
 
 If you maintain a parallel TestNG suite, ensure the file is `testngSuite.xml` and includes your desired `parallel`/`thread-count` settings.
-- Default TestNG suite: `testngSuite.xml` (renamed from testngParallel.xml)
-- Android (tag filter required):
-### Android
-...
-- **Run:**
-```bash
-mvn clean test \
-    -DsuiteXmlFile=testngSuite.xml \
-    -Dplatform=android \
-    -Dbrowserstack.config=browserstack-android.yml \
-    -Dcucumber.filter.tags="@androidOnly"
-```
-mvn clean test -DsuiteXmlFile=testngSuite.xml -Dplatform=ios -Denv=browserstack -Dcucumber.filter.tags="@iosOnly"
-```
-iOS
-...
-- **Run:**
-```bash
-mvn clean test \
-    -DsuiteXmlFile=testngSuite.xml \
-    -Dplatform=ios \
-    -Dbrowserstack.config=browserstack-ios.yml \
-    -Dcucumber.filter.tags="@iosOnly"
-```
-- YAML lives at repo root; SDK injects capabilities directly. No config.properties files.
-- Waits: set `frameworkOptions.implicitWait` and `frameworkOptions.explicitWait` in YAML; defaults exist in code.
-#### Commands with Proper Filtering
-```bash
-# Android: Run only @androidOnly scenarios
-mvn clean test -DsuiteXmlFile=testngSuite.xml -Dplatform=android -Dbrowserstack.config=browserstack-android.yml -Dcucumber.filter.tags="@androidOnly"
 
-# iOS: Run only @iosOnly scenarios
-mvn clean test -DsuiteXmlFile=testngSuite.xml -Dplatform=ios -Dbrowserstack.config=browserstack-ios.yml -Dcucumber.filter.tags="@iosOnly"
+## 🧵 Thread Safety & Parallel Execution
 
-# Multi-tag (AND logic): Run scenarios tagged with both @androidOnly AND @smoke
-mvn clean test -DsuiteXmlFile=testngSuite.xml -Dplatform=android -Dbrowserstack.config=browserstack-android.yml -Dcucumber.filter.tags="@androidOnly and @smoke"
-
-# Exclusive execution (NOT logic): Run all scenarios EXCEPT @androidOnly (useful for iOS)
-mvn clean test -DsuiteXmlFile=testngSuite.xml -Dplatform=ios -Dbrowserstack.config=browserstack-ios.yml -Dcucumber.filter.tags="not @androidOnly"
-```
-- ❌ **Missing tag filter**: `mvn clean test -Dplatform=ios -Dbrowserstack.config=browserstack-ios.yml` → Runs ALL scenarios including `@androidOnly`, causing failures on iOS.
-- ❌ **Wrong tag**: `mvn clean test -Dplatform=ios -Dbrowserstack.config=browserstack-ios.yml -Dcucumber.filter.tags="@androidOnly"` → Runs Android tests on iOS; element interactions fail.
-- ❌ **Typo in tag**: `mvn clean test -Dplatform=android -Dbrowserstack.config=browserstack-android.yml -Dcucumber.filter.tags="@androidonly"` (lowercase) → Tag doesn't match (case-sensitive); no tests run.
-│   │                         TestNG Orchestration Layer                            │  │
+### Overview
 │   │  testngParallel.xml: parallel="methods" thread-count="N"                     │  │
 │   └──────────────────────────────────────────────────────────────────────────────┘  │
 │                                    │                                                 │
@@ -587,6 +553,61 @@ All tests run on BrowserStack using the SDK agent. See the BrowserStack section 
 
 ---
 
+## 🔐 Security & Credentials
+
+### Local Development
+```bash
+# Set environment variables before running tests
+export BROWSERSTACK_USERNAME=your-username
+export BROWSERSTACK_ACCESS_KEY=your-access-key
+
+# Run tests (DriverFactory falls back to env vars if YAML not found)
+mvn clean test \
+    -DsuiteXmlFile=testngSuite.xml \
+    -Dplatform=android \
+    -Dbrowserstack.config=browserstack-android.yml \
+    -Dcucumber.filter.tags="@androidOnly"
+```
+
+### CI/CD (GitHub Actions)
+- Credentials stored as repository secrets: `BROWSERSTACK_USERNAME`, `BROWSERSTACK_ACCESS_KEY`
+- GitHub Actions injects via environment variables
+- YAML files `browserstack-*.yml` are in `.gitignore` to prevent accidental commits
+
+### Why Not Hardcode Credentials?
+- ❌ Exposes secrets in version control
+- ❌ Requires credential rotation for every developer leaving team
+- ❌ Violates compliance (SOC 2, ISO 27001)
+- ✅ Use environment variables instead (one secret per environment)
+
+---
+
+## 📋 Configuration Files Explained
+
+### Default Behavior (Not Recommended for Production)
+- `pom.xml` sets default: `browserstack-android.yml`
+- Running: `mvn clean test -Dplatform=android` → loads `browserstack-android.yml`
+
+### Explicit Config (Recommended)
+- Override with: `mvn clean test -Dplatform=ios -Dbrowserstack.config=browserstack-ios-ci.yml`
+- Runs: loads `browserstack-ios-ci.yml` instead of default
+
+### File Locations & Usage
+| File | Purpose | Location | Credentials |
+|------|---------|----------|-------------|
+| `browserstack-android.yml` | Android development/local tests | Repo root | `${BROWSERSTACK_USERNAME}`, `${BROWSERSTACK_ACCESS_KEY}` |
+| `browserstack-ios.yml` | iOS development/local tests | Repo root | `${BROWSERSTACK_USERNAME}`, `${BROWSERSTACK_ACCESS_KEY}` |
+| `browserstack-android-ci.yml` | Android CI/CD pipeline tests | Repo root | `${BROWSERSTACK_USERNAME}`, `${BROWSERSTACK_ACCESS_KEY}` (injected by GitHub Actions) |
+| `browserstack-ios-ci.yml` | iOS CI/CD pipeline tests | Repo root | `${BROWSERSTACK_USERNAME}`, `${BROWSERSTACK_ACCESS_KEY}` (injected by GitHub Actions) |
+
+**How ConfigManager Loads Files:**
+1. Looks for file specified in `-Dbrowserstack.config` parameter
+2. Falls back to pom.xml default if not specified
+3. Reads from repo root, `src/test/resources/`, or `target/test-classes/` (in that order)
+4. All environment variable placeholders (`${BROWSERSTACK_USERNAME}`) are resolved at runtime
+
+---
+
 ## **BrowserStack (SDK-Only)**
 
 ### Overview
@@ -608,7 +629,11 @@ export BROWSERSTACK_ACCESS_KEY=<your-access-key>
 ```
 - **Run:**
 ```bash
-mvn clean test -Pbrowserstack -Dplatform=android -Denv=browserstack -Dcucumber.filter.tags="@androidOnly"
+mvn clean test \
+    -DsuiteXmlFile=testngSuite.xml \
+    -Dplatform=android \
+    -Dbrowserstack.config=browserstack-android.yml \
+    -Dcucumber.filter.tags="@androidOnly"
 ```
 - **Verify:** BrowserStack dashboard shows sessions; logs confirm app ID and device allocation.
 
@@ -621,7 +646,11 @@ mvn clean test -Pbrowserstack -Dplatform=android -Denv=browserstack -Dcucumber.f
 - **Credentials:** Provide via environment (same as Android above).
 - **Run:**
 ```bash
-mvn clean test -Pbrowserstack -Dplatform=ios -Denv=browserstack -Dcucumber.filter.tags="@iosOnly"
+mvn clean test \
+    -DsuiteXmlFile=testngSuite.xml \
+    -Dplatform=ios \
+    -Dbrowserstack.config=browserstack-ios.yml \
+    -Dcucumber.filter.tags="@iosOnly"
 ```
 - **Verify:** BrowserStack dashboard shows sessions; logs confirm app ID and device allocation.
 
@@ -658,22 +687,38 @@ Benefits:
 #### Commands with Proper Filtering
 ```bash
 # Android: Run only @androidOnly scenarios
-mvn clean test -Pbrowserstack -Dplatform=android -Denv=browserstack -Dcucumber.filter.tags="@androidOnly"
+mvn clean test \
+    -DsuiteXmlFile=testngSuite.xml \
+    -Dplatform=android \
+    -Dbrowserstack.config=browserstack-android.yml \
+    -Dcucumber.filter.tags="@androidOnly"
 
 # iOS: Run only @iosOnly scenarios
-mvn clean test -Pbrowserstack -Dplatform=ios -Denv=browserstack -Dcucumber.filter.tags="@iosOnly"
+mvn clean test \
+    -DsuiteXmlFile=testngSuite.xml \
+    -Dplatform=ios \
+    -Dbrowserstack.config=browserstack-ios.yml \
+    -Dcucumber.filter.tags="@iosOnly"
 
 # Multi-tag (AND logic): Run scenarios tagged with both @androidOnly AND @smoke
-mvn clean test -Pbrowserstack -Dplatform=android -Denv=browserstack -Dcucumber.filter.tags="@androidOnly and @smoke"
+mvn clean test \
+    -DsuiteXmlFile=testngSuite.xml \
+    -Dplatform=android \
+    -Dbrowserstack.config=browserstack-android.yml \
+    -Dcucumber.filter.tags="@androidOnly and @smoke"
 
 # Exclusive execution (NOT logic): Run all scenarios EXCEPT @androidOnly (useful for iOS)
-mvn clean test -Pbrowserstack -Dplatform=ios -Denv=browserstack -Dcucumber.filter.tags="not @androidOnly"
+mvn clean test \
+    -DsuiteXmlFile=testngSuite.xml \
+    -Dplatform=ios \
+    -Dbrowserstack.config=browserstack-ios.yml \
+    -Dcucumber.filter.tags="not @androidOnly"
 ```
 
 #### Common Mistakes
-- ❌ **Missing tag filter**: `mvn clean test -Pbrowserstack -Dplatform=ios -Denv=browserstack` → Runs ALL scenarios including `@androidOnly`, causing failures on iOS.
-- ❌ **Wrong tag**: `mvn clean test -Pbrowserstack -Dplatform=ios -Denv=browserstack -Dcucumber.filter.tags="@androidOnly"` → Runs Android tests on iOS; element interactions fail.
-- ❌ **Typo in tag**: `mvn clean test -Pbrowserstack -Dplatform=android -Denv=browserstack -Dcucumber.filter.tags="@androidonly"` (lowercase) → Tag doesn't match (case-sensitive); no tests run.
+- ❌ **Missing tag filter**: `mvn clean test -Dplatform=ios -Dbrowserstack.config=browserstack-ios.yml` → Runs ALL scenarios including `@androidOnly`, causing failures on iOS.
+- ❌ **Wrong tag**: `mvn clean test -Dplatform=ios -Dbrowserstack.config=browserstack-ios.yml -Dcucumber.filter.tags="@androidOnly"` → Runs Android tests on iOS; element interactions fail.
+- ❌ **Typo in tag**: `mvn clean test -Dplatform=android -Dbrowserstack.config=browserstack-android.yml -Dcucumber.filter.tags="@androidonly"` (lowercase) → Tag doesn't match (case-sensitive); no tests run.
 
 #### Example Feature File Structure
 ```gherkin

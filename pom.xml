@@ -177,7 +177,11 @@
 						<env>${env}</env>
 						<platform>${platform}</platform>
 					</systemPropertyVariables>
-
+				<!-- Memory settings: Increase for iOS SDK overhead -->
+				<argLine>-Xmx1024m -XX:MaxMetaspaceSize=256m</argLine>
+				<!-- Fork isolation: Prevent VM crashes on iOS initialization -->
+				<forkCount>1</forkCount>
+				<reuseForks>false</reuseForks>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -215,12 +219,15 @@
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-surefire-plugin</artifactId>
 						<configuration>
-							<!-- BrowserStack SDK agent enabled by default in this profile -->
-							<argLine>${bs.sdk.agent}</argLine>
+							<!-- BrowserStack SDK agent + memory settings (merged argLine) -->
+							<argLine>${bs.sdk.agent} -Xmx1024m -XX:MaxMetaspaceSize=256m</argLine>
 							<systemPropertyVariables>
 								<browserstack.platforms>${platform}</browserstack.platforms>
 								<browserstack.config>browserstack-${platform}.yml</browserstack.config>
 							</systemPropertyVariables>
+							<!-- Fork isolation: Prevent VM crashes on iOS initialization -->
+							<forkCount>1</forkCount>
+							<reuseForks>false</reuseForks>
 						</configuration>
 					</plugin>
 				</plugins>

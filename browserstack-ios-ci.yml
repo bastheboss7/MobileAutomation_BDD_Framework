@@ -1,7 +1,9 @@
 userName: ${BROWSERSTACK_USERNAME}
 accessKey: ${BROWSERSTACK_ACCESS_KEY}
 
-app: app/browserstack/ios/BStackSampleApp.ipa
+# Use BrowserStack-hosted app reference (same sample app works for both iOS and Android)
+# For local testing, override with: -Dbrowserstack.config=browserstack-ios.yml (with local path)
+app: bs://02d88594d8c7d0ba4cecde791474bbb7cba23f73
 
 platforms:
   - deviceName: iPhone 14 Pro Max

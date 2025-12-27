@@ -14,9 +14,10 @@ src/
 │   └── com/automation/framework/
 │       ├── core/
 │       │   ├── ConfigManager.java          # Multi-environment configuration
-│       │   ├── DriverFactory.java          # Platform-specific driver creation (SDK-only)
+│       │   ├── DriverFactory.java          # Platform-specific driver creation
 │       │   ├── DriverManager.java          # Thread-safe driver management
-│       │   └── BrowserStackCapabilityBuilder.java # BS specific capabilities (legacy)
+│       │   ├── FrameworkConstants.java     # Centralized configuration constants
+│       │   └── DevicePool.java             # Device pool management for parallel execution
 │       ├── pages/
 │       │   ├── BasePage.java               # Base class for all page objects
 │       │   ├── PageObjectManager.java      # Thread-safe page object lifecycle

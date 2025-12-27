@@ -3,31 +3,36 @@ package com.automation.framework.core;
 import io.appium.java_client.AppiumDriver;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.android.options.UiAutomator2Options;
+import io.appium.java_client.ios.IOSDriver;
 import io.appium.java_client.ios.options.XCUITestOptions;
 import io.appium.java_client.remote.options.BaseOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.time.Duration;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static com.automation.framework.core.FrameworkConstants.*;
 
 /**
  * Factory class for creating platform-specific Appium drivers.
- * Supports Android, iOS, and Web automation.
+ * Supports Android and iOS automation with BrowserStack cloud or local execution.
+ * 
+ * <p>Architecture:
+ * - BrowserStack Mode: Uses SDK-managed capabilities from YAML
+ * - Local Mode: Uses device pool allocation and local app paths
  * 
  * @author Baskar
- * @version 3.0.0
+ * @version 4.0.0 - Refactored to use constants and reduce duplication
  */
 public class DriverFactory {
     private static final Logger logger = LoggerFactory.getLogger(DriverFactory.class);
 
     // Atomic counters for thread-safe port allocation
-    private static final AtomicInteger androidPortCounter = new AtomicInteger(8200);
-    private static final AtomicInteger wdaPortCounter = new AtomicInteger(8100);
+    private static final AtomicInteger androidPortCounter = new AtomicInteger(ANDROID_PORT_START);
+    private static final AtomicInteger wdaPortCounter = new AtomicInteger(IOS_WDA_PORT_START);
 
     public enum Platform {
         ANDROID,
@@ -42,6 +47,7 @@ public class DriverFactory {
      * Create a driver based on the current platform configuration.
      * 
      * @return AppiumDriver instance
+     * @throws RuntimeException if driver creation fails
      */
     public static AppiumDriver createDriver() {
         String platformStr = ConfigManager.getPlatform().toUpperCase();
@@ -53,8 +59,9 @@ public class DriverFactory {
     /**
      * Create a driver for a specific platform.
      * 
-     * @param platform Target platform
+     * @param platform Target platform (ANDROID or IOS)
      * @return AppiumDriver instance
+     * @throws RuntimeException if driver creation fails
      */
     public static AppiumDriver createDriver(Platform platform) {
         logger.info("Creating driver for platform: {}", platform);
@@ -73,188 +80,256 @@ public class DriverFactory {
             throw new RuntimeException("Driver creation failed", e);
         }
     }
+    
+    /**
+     * Check if the environment is BrowserStack.
+     * 
+     * @return true if BrowserStack environment, false otherwise
+     */
+    private static boolean isBrowserStackEnvironment() {
+        String env = ConfigManager.getEnvironment();
+        return env != null && (env.toLowerCase().contains(ENV_BS_SHORT) || 
+                                env.toLowerCase().contains(ENV_BROWSERSTACK));
+    }
+    
+    /**
+     * Get BrowserStack hub URL with embedded credentials.
+     * 
+     * @return BrowserStack hub URL
+     * @throws IllegalStateException if credentials are not set
+     */
+    private static String getBrowserStackHubUrl() {
+        String username = System.getenv(BROWSERSTACK_USERNAME_ENV);
+        String accessKey = System.getenv(BROWSERSTACK_ACCESS_KEY_ENV);
+        
+        if (username == null || accessKey == null) {
+            throw new IllegalStateException(
+                String.format("BrowserStack credentials not found. Set %s and %s environment variables.",
+                    BROWSERSTACK_USERNAME_ENV, BROWSERSTACK_ACCESS_KEY_ENV));
+        }
+        
+        String hubUrl = "https://" + username + ":" + accessKey + "@" + BROWSERSTACK_HUB_URL.replace("https://", "");
+        logger.info("Connecting to BrowserStack hub: {}", hubUrl.replaceAll(":.*@", ":***@"));
+        return hubUrl;
+    }
+    
+    /**
+     * Configure implicit wait timeout on driver.
+     * 
+     * @param driver AppiumDriver instance
+     */
+    private static void configureImplicitWait(AppiumDriver driver) {
+        int implicitWait = ConfigManager.getInt(CONFIG_KEY_IMPLICIT_WAIT, DEFAULT_IMPLICIT_WAIT);
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(implicitWait));
+    }
 
     /**
      * Create Android driver with UiAutomator2.
+     * 
+     * @return AndroidDriver instance
+     * @throws MalformedURLException if hub URL is invalid
      */
     private static AppiumDriver createAndroidDriver() throws MalformedURLException {
         UiAutomator2Options options = new UiAutomator2Options();
 
-        String hubUrl = ConfigManager.get("hubUrl", ConfigManager.get("HUB", "http://127.0.0.1:4723"));
-        String env = ConfigManager.getEnvironment();
+        String hubUrl = ConfigManager.get(CONFIG_KEY_HUB_URL, 
+                                         ConfigManager.get(CONFIG_KEY_HUB_LEGACY, DEFAULT_HUB_URL));
 
-        // BrowserStack Mode: Connect to BrowserStack hub with credentials and capabilities from YAML
-        if (env != null && (env.toLowerCase().contains("bs") || env.toLowerCase().contains("browserstack"))) {
-            logger.info("BrowserStack Mode (Android) - Connecting to hub-cloud.browserstack.com");
-            String username = System.getenv("BROWSERSTACK_USERNAME");
-            String accessKey = System.getenv("BROWSERSTACK_ACCESS_KEY");
-            if (username == null || accessKey == null) {
-                throw new IllegalStateException("BrowserStack credentials not found. Set BROWSERSTACK_USERNAME and BROWSERSTACK_ACCESS_KEY environment variables.");
-            }
-            String bsHubUrl = "https://" + username + ":" + accessKey + "@hub-cloud.browserstack.com/wd/hub";
-            logger.info("Connecting to BrowserStack hub: {}", bsHubUrl.replaceAll(":.*@", ":***@"));
+        // BrowserStack Mode: Use SDK-managed capabilities from YAML
+        if (isBrowserStackEnvironment()) {
+            logger.info("BrowserStack Mode (Android) - Using cloud execution");
+            loadBrowserStackCapabilities(options);
             
-            // Load capabilities from YAML
-            UiAutomator2Options bsOptions = new UiAutomator2Options();
-            loadBrowserStackCapabilities(bsOptions);
-            
-            AppiumDriver driver = new AndroidDriver(URI.create(bsHubUrl).toURL(), bsOptions);
-            driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(ConfigManager.getInt("implicitWait", 30)));
+            AppiumDriver driver = new AndroidDriver(URI.create(getBrowserStackHubUrl()).toURL(), options);
+            configureImplicitWait(driver);
             return driver;
         }
 
-        // Local Mode: Full framework control (Local execution)
-        String deviceName = DevicePool.getDeviceName();
-        String platformVersion = DevicePool.getPlatformVersion();
-        options.setDeviceName(deviceName);
-        options.setPlatformVersion(platformVersion);
-        options.setAutomationName("UiAutomator2");
-
-        options.setNoReset(ConfigManager.getBoolean("noReset", false));
-        options.setNewCommandTimeout(Duration.ofSeconds(ConfigManager.getInt("newCommandTimeout", 6000)));
-
+        // Local Mode: Use device pool allocation
+        logger.info("Local Mode (Android) - Using local execution");
+        configureLocalAndroidOptions(options);
+        
+        AppiumDriver driver = new AndroidDriver(URI.create(hubUrl).toURL(), options);
+        configureImplicitWait(driver);
+        return driver;
+    }
+    
+    /**
+     * Configure Android options for local execution.
+     * 
+     * @param options UiAutomator2Options to configure
+     */
+    private static void configureLocalAndroidOptions(UiAutomator2Options options) {
+        // Device configuration from pool
+        options.setDeviceName(DevicePool.getDeviceName());
+        options.setPlatformVersion(DevicePool.getPlatformVersion());
+        options.setAutomationName(AUTOMATION_UIAUTOMATOR2);
+        
+        // Reset and timeout settings
+        options.setNoReset(ConfigManager.getBoolean(CONFIG_KEY_NO_RESET, false));
+        options.setNewCommandTimeout(Duration.ofSeconds(
+            ConfigManager.getInt(CONFIG_KEY_NEW_COMMAND_TIMEOUT, DEFAULT_COMMAND_TIMEOUT)));
+        
+        // Thread-safe port allocation
         int systemPort = androidPortCounter.getAndIncrement();
-        if (systemPort > 8299) {
-            androidPortCounter.set(8200);
+        if (systemPort > ANDROID_PORT_END) {
+            androidPortCounter.set(ANDROID_PORT_START);
             systemPort = androidPortCounter.getAndIncrement();
         }
         options.setSystemPort(systemPort);
-        String appPath = ConfigManager.get("androidAppPath");
+        
+        // App path resolution
+        String appPath = ConfigManager.get(CONFIG_KEY_ANDROID_APP_PATH);
         if (appPath == null) {
-            appPath = ConfigManager.get("appPath");
+            appPath = ConfigManager.get(CONFIG_KEY_APP_PATH);
         }
         if (appPath == null || appPath.isBlank()) {
-            throw new IllegalStateException("Local Android app path is missing. Set 'androidAppPath' or 'appPath' in config.");
+            throw new IllegalStateException(
+                "Local Android app path is missing. Set 'androidAppPath' or 'appPath' in config.");
         }
         options.setApp(System.getProperty("user.dir") + "/" + appPath);
-
-        logger.info("Creating AndroidDriver (Local) with options: {}", options.asMap());
-        AppiumDriver driver = new AndroidDriver(URI.create(hubUrl).toURL(), options);
-        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(ConfigManager.getInt("implicitWait", 30)));
-        return driver;
+        
+        logger.info("Local Android options configured: device={}, port={}", 
+                    options.getDeviceName().orElse("unknown"), systemPort);
     }
 
     /**
      * Create iOS driver with XCUITest.
+     * 
+     * @return IOSDriver instance
+     * @throws MalformedURLException if hub URL is invalid
      */
     private static AppiumDriver createIOSDriver() throws MalformedURLException {
         XCUITestOptions options = new XCUITestOptions();
 
-        String hubUrl = ConfigManager.get("hubUrl", ConfigManager.get("HUB", "http://127.0.0.1:4723"));
-        String env = ConfigManager.getEnvironment();
+        String hubUrl = ConfigManager.get(CONFIG_KEY_HUB_URL, 
+                                         ConfigManager.get(CONFIG_KEY_HUB_LEGACY, DEFAULT_HUB_URL));
 
-        // BrowserStack Mode: Connect to BrowserStack hub with credentials and SDK-managed capabilities
-        if (env != null && (env.toLowerCase().contains("bs") || env.toLowerCase().contains("browserstack"))) {
-            logger.info("BrowserStack Mode (iOS) - Connecting to hub-cloud.browserstack.com");
-            String username = System.getenv("BROWSERSTACK_USERNAME");
-            String accessKey = System.getenv("BROWSERSTACK_ACCESS_KEY");
-            if (username == null || accessKey == null) {
-                throw new IllegalStateException("BrowserStack credentials not found. Set BROWSERSTACK_USERNAME and BROWSERSTACK_ACCESS_KEY environment variables.");
-            }
-            String bsHubUrl = "https://" + username + ":" + accessKey + "@hub-cloud.browserstack.com/wd/hub";
-            logger.info("Connecting to BrowserStack hub: {}", bsHubUrl.replaceAll(":.*@", ":***@"));
+        // BrowserStack Mode: Use SDK-managed capabilities from YAML
+        if (isBrowserStackEnvironment()) {
+            logger.info("BrowserStack Mode (iOS) - Using cloud execution");
+            loadBrowserStackCapabilities(options);
             
-            // Load capabilities from YAML
-            XCUITestOptions bsOptions = new XCUITestOptions();
-            loadBrowserStackCapabilities(bsOptions);
-            
-            AppiumDriver driver = new io.appium.java_client.ios.IOSDriver(URI.create(bsHubUrl).toURL(), bsOptions);
-            driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(ConfigManager.getInt("implicitWait", 30)));
+            AppiumDriver driver = new IOSDriver(URI.create(getBrowserStackHubUrl()).toURL(), options);
+            configureImplicitWait(driver);
             return driver;
         }
 
-        // Local Mode (non-BrowserStack)
-        String deviceName = DevicePool.getIOSDeviceName();
-        String platformVersion = DevicePool.getIOSPlatformVersion();
-        options.setDeviceName(deviceName);
-        options.setPlatformVersion(platformVersion);
-        options.setAutomationName("XCUITest");
-
-        options.setNoReset(ConfigManager.getBoolean("noReset", false));
-        options.setUdid(ConfigManager.get("iosUdid"));
-        options.setNewCommandTimeout(Duration.ofSeconds(ConfigManager.getInt("newCommandTimeout", 6000)));
-
+        // Local Mode: Use device pool allocation
+        logger.info("Local Mode (iOS) - Using local execution");
+        configureLocalIOSOptions(options);
+        
+        AppiumDriver driver = new IOSDriver(URI.create(hubUrl).toURL(), options);
+        configureImplicitWait(driver);
+        return driver;
+    }
+    
+    /**
+     * Configure iOS options for local execution.
+     * 
+     * @param options XCUITestOptions to configure
+     */
+    private static void configureLocalIOSOptions(XCUITestOptions options) {
+        // Device configuration from pool
+        options.setDeviceName(DevicePool.getIOSDeviceName());
+        options.setPlatformVersion(DevicePool.getIOSPlatformVersion());
+        options.setAutomationName(AUTOMATION_XCUITEST);
+        
+        // Reset and timeout settings
+        options.setNoReset(ConfigManager.getBoolean(CONFIG_KEY_NO_RESET, false));
+        options.setUdid(ConfigManager.get(CONFIG_KEY_IOS_UDID));
+        options.setNewCommandTimeout(Duration.ofSeconds(
+            ConfigManager.getInt(CONFIG_KEY_NEW_COMMAND_TIMEOUT, DEFAULT_COMMAND_TIMEOUT)));
+        
+        // Thread-safe WDA port allocation
         int wdaPort = wdaPortCounter.getAndIncrement();
-        if (wdaPort > 8199) {
-            wdaPortCounter.set(8100);
+        if (wdaPort > IOS_WDA_PORT_END) {
+            wdaPortCounter.set(IOS_WDA_PORT_START);
             wdaPort = wdaPortCounter.getAndIncrement();
         }
         options.setWdaLocalPort(wdaPort);
-        String appPath = ConfigManager.get("iosAppPath");
+        
+        // App path resolution
+        String appPath = ConfigManager.get(CONFIG_KEY_IOS_APP_PATH);
         if (appPath == null) {
-            appPath = ConfigManager.get("appPath");
+            appPath = ConfigManager.get(CONFIG_KEY_APP_PATH);
         }
         if (appPath == null || appPath.isBlank()) {
-            throw new IllegalStateException("Local iOS app path is missing. Set 'iosAppPath' or 'appPath' in config.");
+            throw new IllegalStateException(
+                "Local iOS app path is missing. Set 'iosAppPath' or 'appPath' in config.");
         }
         options.setApp(System.getProperty("user.dir") + "/" + appPath);
-
-        AppiumDriver driver = new io.appium.java_client.ios.IOSDriver(URI.create(hubUrl).toURL(), options);
-        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(ConfigManager.getInt("implicitWait", 30)));
-        return driver;
+        
+        logger.info("Local iOS options configured: device={}, wdaPort={}", 
+                    options.getDeviceName().orElse("unknown"), wdaPort);
     }
 
     /**
      * Load BrowserStack capabilities from YAML configuration.
-     * Applies app, source, debug, and other settings to the options.
-     * Throws IllegalStateException if required capabilities are missing.
+     * Applies app, automationName, source, debug, and logging settings to the options.
+     * 
+     * @param options BaseOptions to configure
+     * @throws IllegalStateException if required capabilities (app) are missing
      */
     private static void loadBrowserStackCapabilities(BaseOptions<?> options) {
         logger.info("Loading BrowserStack capabilities from YAML...");
         
-        // Load app reference from YAML (REQUIRED for BrowserStack)
-        // Note: 'app' is excluded from properties, must access from rawYamlData
-        Object appObj = ConfigManager.getRawValue("app");
+        // Load app reference (REQUIRED - must be bs://... or app path)
+        Object appObj = ConfigManager.getRawValue(CONFIG_KEY_APP);
         String app = appObj != null ? appObj.toString() : null;
         
         if (app == null || app.isBlank()) {
-            throw new IllegalStateException("CRITICAL: 'app' capability is missing from YAML. BrowserStack requires an app reference (e.g., bs://... or app/path/to/app.ipa)");
+            throw new IllegalStateException(
+                "CRITICAL: 'app' capability is missing from YAML. " +
+                "BrowserStack requires an app reference (e.g., bs://... or app/path/to/app.ipa)");
         }
-        logger.info("✓ Setting app from YAML: {}", app);
-        options.setCapability("app", app);
+        logger.info("✓ App reference: {}", app);
+        options.setCapability(CONFIG_KEY_APP, app);
         
-        // Load automationName if configured (especially important for iOS - must be XCUITest)
-        String automationName = ConfigManager.get("automationName");
+        // Load automationName (especially important for iOS - must be XCUITest)
+        String automationName = ConfigManager.get(CONFIG_KEY_AUTOMATION_NAME);
         if (automationName != null && !automationName.isBlank()) {
-            logger.info("✓ Setting automationName: {}", automationName);
-            options.setCapability("automationName", automationName);
+            logger.info("✓ Automation engine: {}", automationName);
+            options.setCapability(CONFIG_KEY_AUTOMATION_NAME, automationName);
         }
         
-        // Load source agent (if configured)
-        String source = ConfigManager.get("source");
-        if (source != null && !source.isBlank()) {
-            logger.debug("Setting source agent: {}", source);
-            options.setCapability("source", source);
-        }
+        // Load optional capabilities
+        loadOptionalCapability(options, CONFIG_KEY_SOURCE);
+        loadOptionalBooleanCapability(options, CONFIG_KEY_DEBUG);
+        loadOptionalBooleanCapability(options, CONFIG_KEY_NETWORK_LOGS);
+        loadOptionalBooleanCapability(options, CONFIG_KEY_DEVICE_LOGS);
+        loadOptionalBooleanCapability(options, CONFIG_KEY_APPIUM_LOGS);
+        loadOptionalCapability(options, CONFIG_KEY_CONSOLE_LOGS);
+        loadOptionalBooleanCapability(options, CONFIG_KEY_BROWSERSTACK_LOCAL);
         
-        // Load debug flag
-        Boolean debug = ConfigManager.getBoolean("debug", false);
-        if (debug) {
-            logger.debug("Enabling debug logging");
-            options.setCapability("debug", true);
+        logger.info("✓ BrowserStack capabilities loaded successfully");
+    }
+    
+    /**
+     * Load optional string capability from configuration.
+     * 
+     * @param options BaseOptions to configure
+     * @param key Configuration key
+     */
+    private static void loadOptionalCapability(BaseOptions<?> options, String key) {
+        String value = ConfigManager.get(key);
+        if (value != null && !value.isBlank()) {
+            options.setCapability(key, value);
+            logger.debug("✓ {} = {}", key, value);
         }
-        
-        // Load network and device logs if configured
-        if (ConfigManager.getBoolean("networkLogs", false)) {
-            options.setCapability("networkLogs", true);
+    }
+    
+    /**
+     * Load optional boolean capability from configuration.
+     * Only sets if value is true.
+     * 
+     * @param options BaseOptions to configure
+     * @param key Configuration key
+     */
+    private static void loadOptionalBooleanCapability(BaseOptions<?> options, String key) {
+        if (ConfigManager.getBoolean(key, false)) {
+            options.setCapability(key, true);
+            logger.debug("✓ {} = enabled", key);
         }
-        if (ConfigManager.getBoolean("deviceLogs", false)) {
-            options.setCapability("deviceLogs", true);
-        }
-        if (ConfigManager.getBoolean("appiumLogs", false)) {
-            options.setCapability("appiumLogs", true);
-        }
-        
-        // Load console logs setting
-        String consoleLogs = ConfigManager.get("consoleLogs");
-        if (consoleLogs != null && !consoleLogs.isBlank()) {
-            options.setCapability("consoleLogs", consoleLogs);
-        }
-        
-        // Load browserstack.local if configured
-        if (ConfigManager.getBoolean("browserstackLocal", false)) {
-            options.setCapability("browserstackLocal", true);
-        }
-        
-        logger.info("✓ BrowserStack capabilities successfully loaded from YAML");
-    }}
+    }
+}

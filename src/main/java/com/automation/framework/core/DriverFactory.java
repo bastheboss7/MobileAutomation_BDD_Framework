@@ -83,7 +83,7 @@ public class DriverFactory {
         String hubUrl = ConfigManager.get("hubUrl", ConfigManager.get("HUB", "http://127.0.0.1:4723"));
         String env = ConfigManager.getEnvironment();
 
-        // BrowserStack Mode: Connect to BrowserStack hub with credentials and SDK-managed capabilities
+        // BrowserStack Mode: Connect to BrowserStack hub with credentials and capabilities from YAML
         if (env != null && (env.toLowerCase().contains("bs") || env.toLowerCase().contains("browserstack"))) {
             logger.info("BrowserStack Mode (Android) - Connecting to hub-cloud.browserstack.com");
             String username = System.getenv("BROWSERSTACK_USERNAME");
@@ -93,7 +93,11 @@ public class DriverFactory {
             }
             String bsHubUrl = "https://" + username + ":" + accessKey + "@hub-cloud.browserstack.com/wd/hub";
             logger.info("Connecting to BrowserStack hub: {}", bsHubUrl.replaceAll(":.*@", ":***@"));
+            
+            // Load capabilities from YAML
             UiAutomator2Options bsOptions = new UiAutomator2Options();
+            loadBrowserStackCapabilities(bsOptions);
+            
             AppiumDriver driver = new AndroidDriver(URI.create(bsHubUrl).toURL(), bsOptions);
             driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(ConfigManager.getInt("implicitWait", 30)));
             return driver;
@@ -149,7 +153,11 @@ public class DriverFactory {
             }
             String bsHubUrl = "https://" + username + ":" + accessKey + "@hub-cloud.browserstack.com/wd/hub";
             logger.info("Connecting to BrowserStack hub: {}", bsHubUrl.replaceAll(":.*@", ":***@"));
+            
+            // Load capabilities from YAML
             XCUITestOptions bsOptions = new XCUITestOptions();
+            loadBrowserStackCapabilities(bsOptions);
+            
             AppiumDriver driver = new io.appium.java_client.ios.IOSDriver(URI.create(bsHubUrl).toURL(), bsOptions);
             driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(ConfigManager.getInt("implicitWait", 30)));
             return driver;
@@ -185,4 +193,54 @@ public class DriverFactory {
         driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(ConfigManager.getInt("implicitWait", 30)));
         return driver;
     }
-}
+
+    /**
+     * Load BrowserStack capabilities from YAML configuration.
+     * Applies app, source, debug, and other settings to the options.
+     */
+    private static void loadBrowserStackCapabilities(BaseOptions<?> options) {
+        // Load app reference from YAML
+        String app = ConfigManager.get("app");
+        if (app != null && !app.isBlank()) {
+            logger.debug("Setting app from YAML: {}", app);
+            options.setCapability("app", app);
+        }
+        
+        // Load source agent (if configured)
+        String source = ConfigManager.get("source");
+        if (source != null && !source.isBlank()) {
+            logger.debug("Setting source agent: {}", source);
+            options.setCapability("source", source);
+        }
+        
+        // Load debug flag
+        Boolean debug = ConfigManager.getBoolean("debug", false);
+        if (debug) {
+            logger.debug("Enabling debug logging");
+            options.setCapability("debug", true);
+        }
+        
+        // Load network and device logs if configured
+        if (ConfigManager.getBoolean("networkLogs", false)) {
+            options.setCapability("networkLogs", true);
+        }
+        if (ConfigManager.getBoolean("deviceLogs", false)) {
+            options.setCapability("deviceLogs", true);
+        }
+        if (ConfigManager.getBoolean("appiumLogs", false)) {
+            options.setCapability("appiumLogs", true);
+        }
+        
+        // Load console logs setting
+        String consoleLogs = ConfigManager.get("consoleLogs");
+        if (consoleLogs != null && !consoleLogs.isBlank()) {
+            options.setCapability("consoleLogs", consoleLogs);
+        }
+        
+        // Load browserstack.local if configured
+        if (ConfigManager.getBoolean("browserstackLocal", false)) {
+            options.setCapability("browserstackLocal", true);
+        }
+        
+        logger.info("BrowserStack capabilities loaded from YAML");
+    }}

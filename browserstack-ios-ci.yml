@@ -1,0 +1,25 @@
+userName: ${BROWSERSTACK_USERNAME}
+accessKey: ${BROWSERSTACK_ACCESS_KEY}
+
+app: app/browserstack/ios/BStackSampleApp.ipa
+
+platforms:
+  - deviceName: iPhone 14 Pro Max
+    osVersion: "16"
+    platformName: ios
+  - deviceName: iPhone 14
+    osVersion: "16"
+    platformName: ios
+  - deviceName: iPhone 15
+    osVersion: "17"
+    platformName: ios
+
+parallelsPerPlatform: 1
+
+source: java:appium-intellij:2.0.0-IC
+browserstackLocal: false
+debug: true
+networkLogs: true
+appiumLogs: true
+deviceLogs: true
+consoleLogs: errors

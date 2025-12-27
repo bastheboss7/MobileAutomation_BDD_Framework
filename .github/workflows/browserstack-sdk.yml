@@ -118,6 +118,7 @@ jobs:
         run: |
           mvn clean test \
             -Pbrowserstack \
+            -Dbrowserstack.config=browserstack-android-ci.yml \
             -Dplatform=android \
             -Denv=browserstack \
             -Dcucumber.filter.tags="${{ steps.tags.outputs.filter }}" \
@@ -199,6 +200,7 @@ jobs:
         run: |
           mvn clean test \
             -Pbrowserstack \
+            -Dbrowserstack.config=browserstack-ios-ci.yml \
             -Dplatform=ios \
             -Denv=browserstack \
             -Dcucumber.filter.tags="${{ steps.tags.outputs.filter }}" \

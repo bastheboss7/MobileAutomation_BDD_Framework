@@ -9,7 +9,7 @@
 
 
 ## 🧪 Test Execution
-- Default TestNG suite: `testngSuite.xml` (renamed from testngParallel.xml)
+- Default TestNG suite: `testngSuite.xml`
 - Android (tag filter required):
 ```bash
 mvn clean test \
@@ -59,7 +59,7 @@ If you maintain a parallel TestNG suite, ensure the file is `testngSuite.xml` an
 ## 🧵 Thread Safety & Parallel Execution
 
 ### Overview
-│   │  testngParallel.xml: parallel="methods" thread-count="N"                     │  │
+│   │  testngSuite.xml: parallel="methods" thread-count="N"                   │  │
 │   └──────────────────────────────────────────────────────────────────────────────┘  │
 │                                    │                                                 │
 │                    ┌───────────────┼───────────────┐                                │
@@ -443,13 +443,13 @@ public class Hooks {
 
 ```bash
 # Enable parallel execution in TestNG
-mvn clean test -Dsurefire.suiteXmlFiles=testngParallel.xml
+mvn clean test -DsuiteXmlFile=testngSuite.xml -Dplatform=android -Dbrowserstack.config=browserstack-android.yml -Dcucumber.filter.tags="@androidOnly"
 
-# Or via command line
-mvn test -Dparallel=methods -DthreadCount=4 -Dplatform=android
+# Or via command line with custom thread count
+mvn test -Dparallel=methods -DthreadCount=4 -Dplatform=android -DsuiteXmlFile=testngSuite.xml
 ```
 
-**testngParallel.xml configuration:**
+**testngSuite.xml configuration:**
 ```xml
 <suite name="MobileAutomation-BDD-Suite" parallel="methods" thread-count="4">
     <listeners>

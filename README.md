@@ -645,21 +645,55 @@ mvn clean test -Pbrowserstack -Dplatform=ios -Denv=local.bs -DsdkAgent=true -Dcu
 
 ## **BrowserStack (SDK-Only)**
 
+### Overview
+- **SDK-Driven:** BrowserStack Java SDK agent manages all capabilities, app upload, and session lifecycle.
+- **No hubUrl in YAML:** SDK sets hub endpoint internally via agent. Remove `hubUrl` from config.
+- **Credentials:** Load via environment variables (`BROWSERSTACK_USERNAME`, `BROWSERSTACK_ACCESS_KEY`). Never hardcode for CI/CD.
+- **App Reference:** Use `custom_id` (string identifier) or `bs://<id>` (uploaded app ID) to avoid stale references.
+
 ### Android
-- **Prerequisites:** BrowserStack account; credentials via env vars (`BROWSERSTACK_USERNAME`, `BROWSERSTACK_ACCESS_KEY`).
-- **Config:** [browserstack-android.yml](browserstack-android.yml) with `app: bs://<id>` or local path (SDK auto-upload).
+- **Prerequisites:** BrowserStack account; Java 21+; Maven 3.8+.
+- **Config:** [browserstack-android.yml](browserstack-android.yml) with:
+  - `app: custom_id:my-android-app` (recommended) OR `app: bs://uploaded-app-id`
+  - NO `hubUrl` (SDK handles endpoint)
+  - `platforms` with device names and OS versions
+- **Credentials:** Provide via environment:
+```bash
+export BROWSERSTACK_USERNAME=<your-username>
+export BROWSERSTACK_ACCESS_KEY=<your-access-key>
+```
 - **Run:**
 ```bash
 mvn clean test -Pbrowserstack -Dplatform=android -Denv=browserstack -Dcucumber.filter.tags="@androidOnly"
 ```
-- **Verify:** BrowserStack dashboard shows sessions; capabilities contain `app=bs://...`.
+- **Verify:** BrowserStack dashboard shows sessions; logs confirm app ID and device allocation.
 
 ### iOS
-- **Prerequisites:** BrowserStack account; credentials via env vars (`BROWSERSTACK_USERNAME`, `BROWSERSTACK_ACCESS_KEY`).
-- **Config:** [browserstack-ios.yml](browserstack-ios.yml) with `app: bs://<id>` or local path (SDK auto-upload).
+- **Prerequisites:** BrowserStack account; Java 21+; Maven 3.8+.
+- **Config:** [browserstack-ios.yml](browserstack-ios.yml) with:
+  - `app: custom_id:my-ios-app` (recommended) OR `app: bs://uploaded-app-id`
+  - NO `hubUrl` (SDK handles endpoint)
+  - `platforms` with device names and OS versions
+- **Credentials:** Provide via environment (same as Android above).
 - **Run:**
 ```bash
 mvn clean test -Pbrowserstack -Dplatform=ios -Denv=browserstack -Dcucumber.filter.tags="@BStackSample"
 ```
-- **Verify:** BrowserStack dashboard shows sessions; capabilities contain `app=bs://...`.
+- **Verify:** BrowserStack dashboard shows sessions; logs confirm app ID and device allocation.
+
+### Custom App IDs (Best Practice)
+Instead of using ephemeral `bs://...` IDs, use `custom_id` for stable app references:
+```yaml
+# browserstack-android.yml (SDK-only)
+app: custom_id:my-android-app-v1  # Human-readable, stable across runs
+
+platforms:
+  - deviceName: Samsung Galaxy S23 Ultra
+    osVersion: 13.0
+    platformName: android
+```
+Benefits:
+- Stable app reference across CI/CD runs.
+- Easy to rotate app versions without changing config.
+- Self-documenting (e.g., `custom_id:my-app-v1` vs `bs://02d88594d8c7d0ba`).
 

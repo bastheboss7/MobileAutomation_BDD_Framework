@@ -27,7 +27,7 @@ public class Hooks {
 
     @Before
     public void launchApplication(Scenario scenario) {
-        logger.info("Starting scenario: {}", scenario.getName());
+        logger.debug("Starting scenario: {}", scenario.getName());
 
         // Create test in Extent Report
         ExtentReportManager.createTest(scenario.getName());
@@ -42,7 +42,7 @@ public class Hooks {
         DriverFactory.createDriver();
         ExtentReportManager.logInfo("Application launched successfully");
 
-        logger.info("Application launched successfully");
+        logger.debug("Application launched successfully");
     }
 
     @AfterStep
@@ -83,7 +83,7 @@ public class Hooks {
             PageObjectManager.reset(); // Reset page objects for next scenario
             DriverManager.quitDriver(); // Quit driver
             DevicePool.releaseDevice(); // Release device from pool
-            logger.info("Scenario completed: {} - {}", scenario.getName(), scenario.getStatus());
+            logger.debug("Scenario completed: {} - {}", scenario.getName(), scenario.getStatus());
         }
     }
 }

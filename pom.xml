@@ -168,9 +168,6 @@
 				<configuration>
 					<testFailureIgnore>false</testFailureIgnore>
 					<includes>
-						<!-- New structure -->
-						<include>**/runners/*Runner.java</include>
-						<!-- Legacy support -->
 						<include>**/runner/*Runner.java</include>
 					</includes>
 					<systemPropertyVariables>

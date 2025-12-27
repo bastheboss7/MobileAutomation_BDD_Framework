@@ -1,0 +1,57 @@
+name: BrowserStack SDK iOS Tests
+
+on:
+  push:
+    branches:
+      - appiumMobile
+      - main
+      - develop
+  pull_request:
+    branches:
+      - appiumMobile
+      - main
+
+jobs:
+  test:
+    name: Run iOS SDK Tests on BrowserStack
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Run iOS BrowserStack SDK Tests
+        env:
+          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+        run: |
+          mvn clean test \
+            -Pbrowserstack \
+            -Dplatform=ios \
+            -Denv=browserstack \
+            -Dcucumber.filter.tags="@BStackSample" \
+            --no-transfer-progress
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-test-reports
+          path: |
+            target/extent-reports/
+            target/surefire-reports/
+          retention-days: 30
+
+      - name: Publish test results
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: target/surefire-reports/TEST-*.xml
+          check_name: iOS SDK Test Results

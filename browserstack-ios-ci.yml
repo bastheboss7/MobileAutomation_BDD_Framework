@@ -2,9 +2,8 @@ userName: ${BROWSERSTACK_USERNAME}
 accessKey: ${BROWSERSTACK_ACCESS_KEY}
 
 # iOS app MUST be uploaded separately from Android
-# Upload iOS app: curl -u "username:accessKey" -X POST https://api-cloud.browserstack.com/app-upload -F "file=@BStackSampleApp.ipa"
-# TODO: Replace with your iOS app ID from BrowserStack upload
-app: bs://YOUR_IOS_APP_ID_HERE
+# Uploaded to BrowserStack: bs://b328daacfb8f146c23232fdc45a26c5fc23e21f8
+app: bs://b328daacfb8f146c23232fdc45a26c5fc23e21f8
 
 # iOS-specific automation settings (REQUIRED for iOS)
 automationName: XCUITest

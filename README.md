@@ -1,7 +1,31 @@
-# Mobile Automation BDD Framework
+# 📱 Mobile Automation BDD Framework
 
-![BrowserStack Certified](https://img.shields.io/badge/BrowserStack-Certified-brightgreen?style=for-the-badge&logo=browserstack)
+### Scalable Appium Ecosystem for iOS & Android Real Devices
+
+![Appium](https://img.shields.io/badge/Appium-61DAFB?style=for-the-badge&logo=appium&logoColor=black)
+![BrowserStack](https://img.shields.io/badge/-BrowserStack-31215A?style=for-the-badge&logo=browserstack&logoColor=white)
+![Java](https://img.shields.io/badge/Java-ED8B00?style=for-the-badge&logo=java&logoColor=white)
+![Cucumber](https://img.shields.io/badge/Cucumber-23D96C?style=for-the-badge&logo=cucumber&logoColor=white)
+![TestNG](https://img.shields.io/badge/TestNG-FF7000?style=for-the-badge&logo=testng&logoColor=white)
+![Build](https://img.shields.io/badge/Build-Passing-brightgreen?style=for-the-badge)
 ![Architecture Score](https://img.shields.io/badge/Architecture%20Score-A+-blue?style=for-the-badge&logo=dependabot)
+---
+
+## 📖 Project Overview
+
+In modern mobile development, testing on a fragmented landscape of devices and OS versions is the primary bottleneck for Continuous Delivery. This project provides a production-ready, cloud-first automation solution designed to eliminate that bottleneck.
+
+By combining the readability of Cucumber BDD with the massive scale of the BrowserStack Device Cloud, this framework allows teams to execute high-concurrency test suites on hundreds of real iOS and Android devices simultaneously.
+
+💡 Core Value Proposition
+Zero Infrastructure Overhead: Moves away from flaky local emulators to stable, real-world cloud hardware.
+
+Business-Readable Testing: Uses Gherkin syntax so Product Owners and QA can collaborate on test scenarios.
+
+High-Speed Feedback: Built with a strict Thread-Local architecture, enabling massive parallel execution to reduce regression time from hours to minutes.
+
+Shift-Left Ready: Native integration with GitHub Actions ensures every pull request is validated on real hardware before merge.
+
 
 ## 🏆 Framework Architecture Score
 **Current Rating: 9.0/10**
@@ -14,13 +38,6 @@
 ✅ Extent Reports with screenshot capture  
 ✅ Platform-agnostic design (Android/iOS support)  
 ✅ CI/CD ready with BrowserStack pipeline integration  
-
-## 🚀 What's new (Dec 2025)
-- BrowserStack-only: all local/emulator support removed.
-- Capabilities injected by BrowserStack SDK from YAML (no manual capability setting in code).
-- ConfigManager loads raw BrowserStack YAML only; no properties files.
-- `browserstack.local` support removed; only cloud device runs.
-- Waits configured via system property `implicitWait` or defaults; YAML does not include waits.
 
 
 ## 🧪 Test Execution

@@ -17,7 +17,7 @@ on:
     branches:
       - main
       - develop
-  schedule:
+  # schedule:
     # Runs daily at 3:00 AM UTC
     # Use https://crontab.guru to adjust timing
     # 0 3 * * * = Every day at 3:00 AM

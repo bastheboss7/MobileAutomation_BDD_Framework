@@ -96,79 +96,12 @@ mvn clean test \
 
 ### Overview
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                  PARALLEL TEST EXECUTION (BrowserStack Cloud)            │
-│   ┌──────────────────────────────────────────────────────────────────┐  │
-│   │                    TestNG Orchestration Layer                    │  │
-│   │  testngSuite.xml: parallel="methods" thread-count="N"           │  │
-│   └──────────────────────────────────────────────────────────────────┘  │
-│                                    │                                     │
-│                    ┌───────────────┼───────────────┐                    │
-│                    ▼               ▼               ▼                    │
-│   ┌─────────────────────┐ ┌─────────────────────┐ ┌─────────────────┐ │
-│   │     Thread-1        │ │     Thread-2        │ │     Thread-N    │ │
-│   │   (Scenario A)      │ │   (Scenario B)      │ │   (Scenario X)  │ │
-│   └─────────┬───────────┘ └─────────┬───────────┘ └─────────┬───────┘ │
-│             │                       │                       │           │
-│   ┌─────────▼───────────────────────▼───────────────────────▼───────┐  │
-│   │                  SHARED SINGLETON LAYER                          │  │
-│   │  ┌───────────────────────────────────────────────────────────┐  │  │
-│   │  │ ConfigManager (synchronized init, immutable YAML data)   │  │  │
-│   │  │ ExtentReports (synchronized createTest, single report)    │  │  │
-│   │  └───────────────────────────────────────────────────────────┘  │  │
-│   └──────────────────────────────────────────────────────────────────┘  │
-│             │                       │                       │           │
-│   ┌─────────▼───────────────────────▼───────────────────────▼───────┐  │
-│   │                  THREAD-LOCAL ISOLATION LAYER                    │  │
-│   │                                                                  │  │
-│   │   ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐  │  │
-│   │   │DriverManager    │ │DriverManager    │ │DriverManager    │  │  │
-│   │   │ThreadLocal<     │ │ThreadLocal<     │ │ThreadLocal<     │  │  │
-│   │   │ AppiumDriver>   │ │ AppiumDriver>   │ │ AppiumDriver>   │  │  │
-│   │   │ → BS Session 1  │ │ → BS Session 2  │ │ → BS Session N  │  │  │
-│   │   └────────┬────────┘ └────────┬────────┘ └────────┬────────┘  │  │
-│   │            │                   │                   │            │  │
-│   │   ┌────────▼────────┐ ┌────────▼────────┐ ┌────────▼────────┐  │  │
-│   │   │PageObjectMgr    │ │PageObjectMgr    │ │PageObjectMgr    │  │  │
-│   │   │ThreadLocal<     │ │ThreadLocal<     │ │ThreadLocal<     │  │  │
-│   │   │ POM Instance>   │ │ POM Instance>   │ │ POM Instance>   │  │  │
-│   │   │ └─HomeScreen    │ │ └─HomeScreen    │ │ └─HomeScreen    │  │  │
-│   │   │ └─LoginScreen   │ │ └─LoginScreen   │ │ └─LoginScreen   │  │  │
-│   │   └────────┬────────┘ └────────┬────────┘ └────────┬────────┘  │  │
-│   │            │                   │                   │            │  │
-│   │   ┌────────▼────────┐ ┌────────▼────────┐ ┌────────▼────────┐  │  │
-│   │   │ExtentTest       │ │ExtentTest       │ │ExtentTest       │  │  │
-│   │   │ThreadLocal<     │ │ThreadLocal<     │ │ThreadLocal<     │  │  │
-│   │   │ ExtentTest>     │ │ ExtentTest>     │ │ ExtentTest>     │  │  │
-│   │   │ "Scenario A"    │ │ "Scenario B"    │ │ "Scenario X"    │  │  │
-│   │   └─────────────────┘ └─────────────────┘ └─────────────────┘  │  │
-│   └──────────────────────────────────────────────────────────────────┘  │
-│             │                       │                       │           │
-│             ▼                       ▼                       ▼           │
-│   ┌─────────────────────────────────────────────────────────────────┐  │
-│   │              BROWSERSTACK CLOUD INFRASTRUCTURE                   │  │
-│   │  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐       │  │
-│   │  │ Real Device 1 │  │ Real Device 2 │  │ Real Device N │       │  │
-│   │  │ Galaxy S23    │  │ iPhone 15 Pro │  │ Pixel 8       │       │  │
-│   │  │ Android 13    │  │ iOS 17        │  │ Android 14    │       │  │
-│   │  └───────────────┘  └───────────────┘  └───────────────┘       │  │
-│   │  SDK manages: App upload, Capabilities, Device allocation       │  │
-│   └─────────────────────────────────────────────────────────────────┘  │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+The framework uses a **layered isolation model** combining shared singletons for configuration and reporting with thread-local storage for driver and page object isolation. This enables safe parallel test execution without resource contention.
 
-                        CLEANUP PHASE (per thread)
-┌─────────────────────────────────────────────────────────────────────────┐
-│   @After Hook (Hooks.java) - GUARANTEED via try-finally                 │
-│   ┌─────────────────────────────────────────────────────────────────┐   │
-│   │  finally {                                                       │   │
-│   │      PageObjectManager.reset();   // ThreadLocal.remove()       │   │
-│   │      DriverManager.quitDriver();  // Quits BrowserStack session │   │
-│   │  }                                                               │   │
-│   └─────────────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+**Key Components:**
+- **Shared Layer**: ConfigManager (YAML config), ExtentReports (single report file)
+- **Thread-Local Layer**: AppiumDriver, PageObjectManager, ExtentTest instances
+- **Cleanup**: @After hook with try-finally ensures guaranteed resource cleanup
 
 ### Component-Level Thread Safety
 
@@ -442,40 +375,22 @@ public class Hooks {
 
 ### Parallel Execution Memory Model
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                           JVM HEAP                                       │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│  ┌────────────────────────────────────────────────────────────────────┐ │
-│  │              SHARED MEMORY (Singletons)                             │ │
-│  │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐  │ │
-│  │  │  ConfigManager   │  │  ExtentReports   │  │ BrowserStack SDK │  │ │
-│  │  │  (YAML Config)   │  │  (Report File)   │  │ (Cloud Manager)  │  │ │
-│  │  └──────────────────┘  └──────────────────┘  └──────────────────┘  │ │
-│  └────────────────────────────────────────────────────────────────────┘ │
-│                                                                          │
-│  ┌────────────────────────────────────────────────────────────────────┐ │
-│  │              THREAD-LOCAL MEMORY (Per Thread)                       │ │
-│  │                                                                      │ │
-│  │  Thread-1 Stack                    Thread-2 Stack                    │ │
-│  │  ┌─────────────────────┐          ┌─────────────────────┐           │ │
-│  │  │ ThreadLocal Data:   │          │ ThreadLocal Data:   │           │ │
-│  │  │ ├─ AppiumDriver     │          │ ├─ AppiumDriver     │           │ │
-│  │  │ ├─ PageObjectMgr    │          │ ├─ PageObjectMgr    │           │ │
-│  │  │ │  ├─ HomeScreen    │          │ │  ├─ HomeScreen    │           │ │
-│  │  │ │  └─ LoginScreen   │          │ │  └─ LoginScreen   │           │ │
-│  │  │ └─ ExtentTest       │          │ └─ ExtentTest       │           │ │
-│  │  └─────────────────────┘          └─────────────────────┘           │ │
-│  └────────────────────────────────────────────────────────────────────┘ │
-│                                                                          │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+Each test thread has isolated copies of driver, page objects, and test reporting:
+
+| Component | Isolation Level | Storage | Thread-Safe |
+|-----------|-----------------|---------|-------------|
+| AppiumDriver | Per thread | ThreadLocal | ✅ ZERO contention |
+| PageObjectManager | Per thread | ThreadLocal | ✅ No shared state |
+| ExtentTest | Per thread | ThreadLocal | ✅ Isolated test nodes |
+| ConfigManager | Shared (read-only) | Static singleton | ✅ Synchronized init only |
+| ExtentReports | Shared (write-safe) | Static singleton | ✅ Internally synchronized |
 
 ### Running Parallel Tests
 
+Tests execute in parallel via TestNG with isolated threads per scenario:
+
 ```bash
-# Enable parallel execution in TestNG (standard command)
+# Standard parallel execution (configured in testngSuite.xml)
 mvn clean test \
     -DsuiteXmlFile=testngSuite.xml \
     -Dplatform=android \
@@ -498,17 +413,22 @@ mvn clean test \
 </suite>
 ```
 
+**Parallelization Strategy:**
+- `parallel="methods"`: Each test method runs in its own thread
+- `thread-count="4"`: Maximum 4 concurrent threads
+- Thread-local storage: Each thread maintains isolated driver, page objects, and test reporting
+
 ### Thread Safety Checklist
 
-| Component | Pattern | Thread-Safe? | Notes |
-|-----------|---------|--------------|-------|
-| DriverManager | ThreadLocal | ✅ | Each thread has isolated driver |
-| PageObjectManager | ThreadLocal | ✅ | Each thread has isolated page objects |
-| ExtentReportManager | ThreadLocal + Synchronized | ✅ | Shared report, isolated test nodes |
-| ConfigManager | Synchronized init | ✅ | One-time load, immutable after |
-| DriverFactory | BrowserStack Cloud | ✅ | SDK handles device allocation & isolation |
-| BasePage | Stateless | ✅ | Uses thread's driver via DriverManager |
-| Hooks | try-finally | ✅ | Guaranteed cleanup |
+| Component | Pattern | Thread-Safe | Notes |
+|-----------|---------|-------------|-------|
+| DriverManager | ThreadLocal | ✅ | Each thread has isolated driver; BrowserStack cloud handles session isolation |
+| PageObjectManager | ThreadLocal | ✅ | Each thread has isolated page objects; cleaned up via @After hook |
+| ExtentReportManager | ThreadLocal + Synchronized | ✅ | Shared report file with isolated test nodes per thread |
+| ConfigManager | Synchronized init | ✅ | One-time YAML load; immutable after initialization |
+| DriverFactory | BrowserStack SDK | ✅ | SDK manages device allocation and capabilities injection |
+| BasePage | Stateless | ✅ | Accesses thread's driver via DriverManager.getDriver() |
+| Hooks | try-finally | ✅ | Guaranteed cleanup prevents memory leaks in parallel execution |
 
 ## 🎯 Key Design Patterns
 
@@ -524,37 +444,7 @@ mvn clean test \
 | **Template Method** | `BasePage` defines common actions | DRY, consistent element interactions |
 | **Strategy Pattern** | Element-based assertions with fallbacks | Reliable mobile element detection |
 
-## Architectural Traceability & Rationale ##
 
-Why This Design?
-Our framework is architected for scalability, maintainability, and parallel execution. Key design choices include:
-
-Layered Traceability:
-Each test scenario flows from .feature files (business intent), through step definitions (glue), into screen/page objects (UI abstraction), and down to base classes and utilities (engine). This clear separation ensures traceability from business requirements to code.
-
-OOP Principles:
-
-Abstract BasePage: Enforces a contract for all screens, sharing common actions while preventing direct instantiation.
-Protected Methods: Restrict low-level actions to subclasses, encapsulating driver logic and reducing accidental misuse.
-Final Utility Classes: (e.g., WdioLocators) Prevent inheritance and instantiation, ensuring a single source of truth for constants and locators.
-Composition Over Inheritance:
-Utility classes (e.g., ElementActions, WaitUtils) are injected into page objects, promoting loose coupling and easier testing.
-
-Thread Safety:
-DriverManager uses ThreadLocal to isolate driver instances, enabling safe parallel test execution and maximizing resource utilization.
-
-Design Patterns:
-
-Singleton: For configuration management, ensuring consistent settings.
-Factory: For driver creation, supporting multiple platforms.
-Page Object Manager: Centralizes and reuses page objects, reducing duplication.
-Architectural Intelligence
-This design:
-
-Supports parallelism (via ThreadLocal drivers).
-Enforces encapsulation (via access modifiers and abstract classes).
-Promotes reusability and maintainability (via composition and design patterns).
-Enables clear traceability from business logic to engine code, making debugging and onboarding easier.
 
 
 ## 🚀 Quick Start
@@ -562,9 +452,7 @@ Enables clear traceability from business logic to engine code, making debugging 
 ### Prerequisites
 - Java 21+
 - Maven 3.8+
-- Appium Server 2.x (`npm install -g appium`)
-- Android SDK (for Android testing)
-- Xcode (for iOS testing on macOS)
+- BrowserStack account with active credentials
 
 ### Installation
 
@@ -575,15 +463,11 @@ cd MobileAutomation_BDD_Framework
 
 # Install dependencies
 mvn clean install -DskipTests
-
-# Install Appium drivers
-appium driver install uiautomator2   # Android
-appium driver install xcuitest       # iOS
 ```
 
 ### Running Tests
 
-All tests run on BrowserStack using the SDK agent. See the BrowserStack section below for detailed instructions.
+All tests run on BrowserStack cloud infrastructure using the SDK agent. See the **BrowserStack (SDK-Only)** section for detailed instructions.
 
 ---
 

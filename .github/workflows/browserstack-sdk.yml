@@ -21,7 +21,7 @@ on:
     # Runs daily at 3:00 AM UTC
     # Use https://crontab.guru to adjust timing
     # 0 3 * * * = Every day at 3:00 AM
-    - cron: '0 3 * * *'
+    # - cron: '0 3 * * *'
   workflow_dispatch:
     # Allows manual triggering from GitHub UI with custom inputs
     # Usage: Actions tab → Run Workflow → Select platform and tags

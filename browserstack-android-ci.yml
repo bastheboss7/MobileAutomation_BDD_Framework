@@ -1,7 +1,7 @@
 userName: ${BROWSERSTACK_USERNAME}
 accessKey: ${BROWSERSTACK_ACCESS_KEY}
 
-app: bs://02d88594d8c7d0ba4cecde791474bbb7cba23f73  # Uploaded app ID or use custom_id for stable reference
+app: bs://69971f15b3570909f3ae95500fb54303b104a149  # Uploaded app ID or use custom_id for stable reference
 
 platforms:
   - deviceName: Samsung Galaxy S23 Ultra
